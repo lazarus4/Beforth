@@ -17,8 +17,11 @@ Fetch is a different operation depending on the address space. Code space may be
 The code and data address spaces don’t overlap even though in the smart fetch case they could. In hex, the address ranges are:
 
 `00000000` to `00FFFFFF`	Data space
+
 `80000000` to `80FFFFFF`	Code space
+
 `FF000000` to `FFFFFFFF`	I/O space
+
 `FE000000` to `FE0000FF`	VM registers
 
 The single stepper uses these addresses as tokens. The program counter (PC), for example, could be VMreg[0].
@@ -83,6 +86,7 @@ The location of the source code should be part of the header.
 The input stream is shared by the JS interpreter and the VM. That means >IN and TIB are at a fixed address in data memory. These addresses are constants as far as either is concerned. JS implements the QUIT loop and the outer interpreter. String tokens (blank delimited strings) are either numeric tokens for the VM or call addresses that reference code space. Code space starts out empty. It gets built up by the JS interpreter. The Forth system is loaded at startup from source. The VM contains all of the basic Forth “amino acids” so that it can build itself.
 
 Sample JS hash function:
+```
 String.prototype.hashCode = function() {
   var hash = 0, i, chr;
   if (this.length === 0) return hash;
@@ -93,6 +97,7 @@ String.prototype.hashCode = function() {
   }
   return hash;
 };
+```
 
 The Forth outer loop gets the next blank-delimited string and looks it up in the header structure. If it finds it, it executes its semantics based on STATE and the word’s semantics functions. Otherwise, it tries to convert it to a number. If it’s not a number, it reports an error. The outer loop is in JS, so it’s not extensible. ANS Forth contains the building blocks to build another interpreter. However, the standard FIND returns only limited semantic information. So, non-standard building blocks should be in the VM to allow a Forth version of the interpreter to run.
 
