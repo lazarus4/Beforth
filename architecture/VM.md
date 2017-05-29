@@ -1,13 +1,13 @@
-## VM
+# VM
 The VM has the option of weak or strong error checking. It may also perform single stepping. The internal state of the VM should be viewable during single stepping. An undo should be able to step backwards through execution.
 
-Undo would be handled by a doubly linked list of data structures containing old and new values and a “register ID”, which means all components of the VM should be defined in array. This list is built in a big chunk of allocated RAM. When it gets to the end of that space, it wraps to the beginning. It removes the oldest elements to make space for new elements. 
+Undo would be handled by a doubly linked list of data structures containing old and new values and a “register ID”, which means all components of the VM should be defined in array. This list could be built in a big chunk of allocated RAM. When it gets to the end of that space, it wraps to the beginning. It removes the oldest elements to make space for new elements. Since JS doesn't do explicit allocation, the list can be handled by the JS and the deleted elements reclaimed by GC.
 
 When a VM run-time error occurs, such as accessing undefined memory or underflowing/overflowing a stack, you can step backwards in the execution thread to see where it went wrong.
 
-The VM’s code space contains only code. The same code generator can be used to create code that runs in an embedded system. It just compiles to a target dictionary rather than the host dictionary.
+The VM’s code space contains only code. Data space is separate. The CDATA and UDATA descriptors switch between the two when the application is compiling data to the dictionary.
 
-### VM memory model
+## VM memory model
 Code space is assumed to be readable, but writable only under certain conditions. The VM restricts write activity by providing a stop condition for debugging.
 
 RAM is initialized to all zeros at startup. IDATA is just as well avoided. If you want data initialized, you can just as easily do it yourself.
@@ -26,7 +26,7 @@ The code and data address spaces don’t overlap even though in the smart fetch 
 
 The single stepper uses these addresses as tokens. The program counter (PC), for example, could be VMreg[0].
 
-### VM metal
+## VM metal
 Memory spaces are declared as arrays of 32-bit values. Octets and half-words are handled by the appropriate shift-and-mask operations. The browser environment can afford a little increase in code space for the sake of speed, so VM instructions are 32-bit: 8-bit instruction and 24-bit literal. The 8-bit instruction is dispatched by the switch statement, which may either use or ignore the 24-bit literal.
 
 Examples of instructions that would use the 24-bit literal are CALL, JUMP, LIT24, +LIT, @LIT, etc. Several pinhole optimizations are easy enough to implement that literals can be rolled into many instructions.
