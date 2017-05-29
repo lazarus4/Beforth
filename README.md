@@ -27,7 +27,7 @@ Beforth is a public domain Forth under the Unlicense license. This allows the Ja
 
 Beforth will use a VM that is conceptually friendly to embedded hardware: Large ROM, small RAM. It will ease compatibility when cross compilers are added to the project.
 ## Status of project:
-Design documents (LibreOffice ODT format) are being worked out.
+Design documents (architecture/) are being worked out.
 
 If you have ideas to contribute, contact me and I'll see about getting you on the project. I'm new to Github, but hopefully the project is easy enough to manage.
 
