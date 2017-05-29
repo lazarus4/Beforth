@@ -14,7 +14,7 @@ Experienced programmers have to develop new habits. Not only should you keep fun
 1. Keep it simple. 
 2. Test as you go. This is the best way to debug the programmer, since programmers are notoriously buggy. 
 3. Crash early and crash often. Like B, but with the humility to actively look for flaws in your reasoning (by getting your hands dirty) instead of assuming you've already thought of the best approach and coded it with minimal bugs. 
-## Why Beforth
+## Why Beforth?
 Be the Forth. Well okay, the Beforth name could also come from the originator's initials (Brad Eckert), but "Be the Forth" is so much more Zen. It's all about having fun. Forth is supposed to be fun. Programming is supposed to be fun. A Forth system should teach you what good Forth looks like and it should help you easily remember and explore aspects of the system so that your memory only has to be "sharp enough".
 
 A Forth implementation should have a pretty face and be heavily instrumented. This is where JavaScript comes in. Today's browsers have a JIT compiler that approaches the efficiency of C code. They offer platform independence. When the JS is run locally, they allow access to the local file system and serial ports. It's all you need to host a real Forth. 
