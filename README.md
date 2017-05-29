@@ -21,10 +21,10 @@ A Forth implementation should have a pretty face and be heavily instrumented. Th
 
 Beforth is a public domain Forth under the Unlicense license. This allows the JavaScript and Forth sources to be freely distributed. The load sequence for Beforth is as follows:
 
-1. Browser loads vm.js, the VM. It define the VM and memory spaces. It loads:
+1. Browser loads vm.js, the VM. It defines the VM and memory spaces. It loads:
 2. Beforth.js, the compiler. It defines the interpreter/compiler and user interface. It INCLUDEs:
 3. Beforth.f, the system. Loaded by the outer loop to define the system.
 
 Beforth will use a VM that is conceptually friendly to embedded hardware: Large ROM, small RAM. It will ease compatibility when cross compilers are added to the project.
 ## Status of project:
-Design documents (LibreOffice ODT format) are being worked out. These include
+Design documents (LibreOffice ODT format) are being worked out. 
