@@ -1,6 +1,6 @@
 # Beforth – A JavaScript-powered Forth Development Environment
 
-##Preliminary Musings
+## Preliminary Musings
 Why JavaScript? It’s available everywhere there’s a browser. Windows, Mac and Linux all support the Chrome browser, for example. Note that JavaScript is like Java about as much as Latinos speak Latin. They’re totally different animals. JavaScript (JS) has loose type checking and a Python-like feel. JS uses a JIT compiler which makes it about as fast as C. JIT should be quick for a relatively simple app such as Beforth.
 
 Beforth will be a JS-based Forth that supports compilation and execution of Forth. It should be implemented as a minimal kernel in JS, which loads the rest of the system from Forth source as needed. It can use a bytecode VM to execute compiled code. It should be possible to instrument the VM so as to allow single step debugging, undo-style backward stepping, breakpoints, etc. For speed, a subset of JS called asm.js should be used for the VM.
@@ -12,17 +12,17 @@ The system consists of three files loaded in order:
 vm.js, the VM. Loaded by JS to define the VM and memory spaces. It loads:
 Beforth.js, the compiler. Loaded by JS to define the outer loop. It INCLUDEs:
 Beforth.f, the system. Loaded by the outer loop to define the system.
-##Development Strategy
+## Development Strategy
 There are some jobs to do before actually implementing Beforth. The project will be implemented in JS and hosted in Github. That means:
 
-*Learn the workflow of Github.
-*Learn the workflow of JS.
-*Work out an IDE layout with split panes, tabs, etc.
-*Test the console components that will be needed by Beforth.
-*Create tools for instrumenting the VM
-*Create the VM
-*Create the Forth
-*Create the Forth system
+- Learn the workflow of Github.
+- Learn the workflow of JS.
+- Work out an IDE layout with split panes, tabs, etc.
+- Test the console components that will be needed by Beforth.
+- Create tools for instrumenting the VM
+- Create the VM
+- Create the Forth
+- Create the Forth system
 
 Development of the JS can be accomplished with (or without) the help of various IDEs. The JS should be called from within a web page and use the browser API (for example HTML5) to talk to the user interface. It should be possible to double-click on the HTML page in the local file system and have the browser launch it. 
 
@@ -64,7 +64,7 @@ The 3-dimensional factorization score could be converted into a single score.
 
 The compiler should export HTML hyperlinked files that you can open in another browser tab.
 
-##Color Schemes
+## Color Schemes
 Syntax highlighting
 Stack highlighting
 Reference highlighting
@@ -79,7 +79,7 @@ The structure of source code in memory is an array of bytes such as ASCII or UTF
 
 Real-time syntax highlighting is sometimes used to conjure up a dimly remembered keyword. Rather than highlight in real time, build applies the highlights. You can turn autocomplete to show a list of possible words based on the current word at the cursor.
 
-##VM
+## VM
 The VM has the option of weak or strong error checking. It may also perform single stepping. The internal state of the VM should be viewable during single stepping. An undo should be able to step backwards through execution.
 
 Undo would be handled by a doubly linked list of data structures containing old and new values and a “register ID”, which means all components of the VM should be defined in array. This list is built in a big chunk of allocated RAM. When it gets to the end of that space, it wraps to the beginning. It removes the oldest elements to make space for new elements. 
@@ -88,7 +88,7 @@ When a VM run-time error occurs, such as accessing undefined memory or underflow
 
 The VM’s code space contains only code. The same code generator can be used to create code that runs in an embedded system. It just compiles to a target dictionary rather than the host dictionary.
 
-VM memory model
+### VM memory model
 Code space is assumed to be readable, but writable only under certain conditions. The VM restricts write activity by providing a stop condition for debugging.
 
 RAM is initialized to all zeros at startup. IDATA is just as well avoided. If you want data initialized, you can just as easily do it yourself.
@@ -97,14 +97,14 @@ Fetch is a different operation depending on the address space. Code space may be
 
 The code and data address spaces don’t overlap even though in the smart fetch case they could. In hex, the address ranges are:
 
-00000000 to 00FFFFFF	Data space
-80000000 to 80FFFFFF	Code space
-FF000000 to FFFFFFFF	I/O space
-FE000000 to FE0000FF	VM registers
+`00000000` to `00FFFFFF`	Data space
+`80000000` to `80FFFFFF`	Code space
+`FF000000` to `FFFFFFFF`	I/O space
+`FE000000` to `FE0000FF`	VM registers
 
 The single stepper uses these addresses as tokens. The program counter (PC), for example, could be VMreg[0].
 
-##VM metal
+### VM metal
 Memory spaces are declared as arrays of 32-bit values. Octets and half-words are handled by the appropriate shift-and-mask operations. The browser environment can afford a little increase in code space for the sake of speed, so VM instructions are 32-bit: 8-bit instruction and 24-bit literal. The 8-bit instruction is dispatched by the switch statement, which may either use or ignore the 24-bit literal.
 
 Examples of instructions that would use the 24-bit literal are CALL, JUMP, LIT24, +LIT, @LIT, etc. Several pinhole optimizations are easy enough to implement that literals can be rolled into many instructions.
@@ -115,9 +115,11 @@ Address units are bytes. This means a speed penalty when using bytes because of 
 
 Stacks are kept in data memory. Stack pointers are “registers” that are ¼ the data address. SP@ and friends convert back and forth by shifting two places. The top of the data stack is in a “register”, as with most classic Forths. DUP could be defined as:
 
+```
 function DUP() {
   tos = dm[sp++];
 }
+```
 
 The VM uses a tight loop that fetches the next instruction and executes it. Some ideas for execution::
 
@@ -130,7 +132,7 @@ The execution table option allows the easy addition of ad-hoc “code words” b
 The execution table could be a means of DEFER if the VM can generate JS at run time and tell the browser to execute it. This doesn’t seem practical. DEFERed words shared by JS and Forth should call a JS function that has a default JS and Forth usage. An array of deferFn[] elements would be a handy place to keep such DEFERed words. Each deferFn would have a JS function and a Forth address. An address of 0 causes the JS function to be used. Otherwise, a call is made to the Forth address.
 
 
-##Headers
+## Headers
 The header space is a collection of arrays, each of which contains a different element a word’s vital statistics. For example, a simple implementation could have wordNames[], wordAddress[] and wordWID[] defined. A dictionary search would use lastIndexOf() to find the index of a string token.
 
 Arrays in JS are dynamic: grow as you go. This is no problem for the header structure, because that’s what it does. When a MARKER is executed, the arrays are truncated (slice method) to the corresponding snapshot state. The header array could contain such fields as Name, Address and WID. However, lastIndexOf should be assumed to be an O(N) operation. Hashing it into several different arrays of strings will speed lookup. A new name gets appended to the string array whose index it hashes to. Likewise, lookup picks the string array using the hash. The name array record includes an index to the unhashed header information.
