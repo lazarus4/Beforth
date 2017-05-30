@@ -29,16 +29,16 @@ A command to hilight text would be a nice-to-have when running the debugger. How
 
 The tabs share a common screen that has control buttons and possibly menus across the top. The favicon and page title show up in the browser tab. Within the browser screen, there are tabs along the top. Each tab opens a different HTML page. Each page has a combination of status dialog items and console windows.
 
-# Low Level Debug
+## Low Level Debug
 
 In the editor, F4 sets the breakpoint register to the word in the editor. The breakpoint can also be set manually.
 
 F6 steps the VM one instruction.
 F5 runs until breakpoint.
 
-There are three stack displays: Data, Return and Float. The float stack is part of JS so the depth is easy to find. The data and return stacks have depths dependent on SP0 and RP0, which are registers in the VM (or fixed data memory locations) instead of Forth USER variables. The VM uses them to check for underflow. The return stack display attempts to translate stack element values into word names.
+There are three stack displays: Data, Return and Float. The float stack is part of JS so the depth is easy to find. The data and return stacks have depths dependent on SP0 and RP0, which are Forth USER variables. The VM uses them to check for underflow. The return stack display attempts to translate stack element values into word names. The VM should be able to cache SP0 and UP0 as registers, refreshing them when UP changes. 
 
-There is aren't many VM registers to display: Program counter (PC) and breakpoint (BKP). They are displayed in an HTML form.
+There is aren't many VM registers to display: Program counter (PC), SP, RP, UP and breakpoint (BKP). They could be displayed in an HTML form.
 
 There should be a hex dump and/or watch windows. Both can be displayed in panes. Pane configuration such as format and start address can be set by form elements.
 
