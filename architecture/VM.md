@@ -35,15 +35,15 @@ The single stepper uses these addresses as tokens. The program counter (PC), for
 ## VM metal
 Stacks are kept in data memory. Stack pointers are registers. The top of the data stack is in a register, as with most classic Forths. Other registers are SP, RP and UP. 
 
-The VM uses a tight loop that fetches the next instruction and executes it. Some ideas for execution::
+The VM uses a tight loop that fetches the next 8-bit instruction and executes it. Some ideas for execution::
 
 1. Use a switch statement to dispatch a command byte. Each case terminates in a “goto next”, where the goto destination is declared with “[lbl] next”.
 2. Use a function table whose index is the command byte. An execution table, in other words.
 3. Use a combination of these: the switch’s default goes to an execution table. 
 
-The execution table option allows the easy addition of ad-hoc “code words” by user-generated JS files in the project. It also renders those VM primitives late-bound. That is, you can modify any primitive at run time and all code will use the new primitive. Option 3 provides the best of both worlds. The simplest implementation should be able to run using only option 1.
+The execution table option allows the easy addition of ad-hoc “code words” by user-generated JS files in the project. It also renders those VM primitives late-bound. For the sake of simplicity, speed and flexibility in opcode assignment, option 1 is used. Tokens that take immediate data (a variable length byte sequence following the opcode) are placed at the end of the (0-255) range so that the disassembler easily knows whether or not to display it.
 
-The execution table could be a means of DEFER if the VM can generate JS at run time and tell the browser to execute it. This doesn’t seem practical. DEFERed words shared by JS and Forth should call a JS function that has a default JS and Forth usage. An array of deferFn[] elements would be a handy place to keep such DEFERed words. Each deferFn would have a JS function and a Forth address. An address of 0 causes the JS function to be used. Otherwise, a call is made to the Forth address.
+DEFERed words shared by JS and Forth should call a JS function that has a default JS and Forth usage. An array of deferFn[] elements would be a handy place to keep such DEFERed words. Each deferFn would have a JS function and a Forth address. An address of 0 causes the JS function to be used. Otherwise, a call is made to the Forth address.
 
 Implementing double precision arithmetic such as UM/MOD and UM\* will require some finesse, since JavaScript doesn't do 64-bit integers. First, the operands are checked to see if they fit a 32-bit operation. If not, things get done the "slow" way. Multiply is done using four 16\*16 operations. Divide is done using either shift-and-subtract or several 32/16 divides.
 
