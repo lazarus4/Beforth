@@ -43,6 +43,28 @@ The VM uses a tight loop that fetches the next 8-bit instruction and executes it
 
 For the sake of simplicity, speed and flexibility in opcode assignment, option 1 is used. Tokens that take immediate data (a variable length byte sequence following the opcode) are placed at the end of the (00-EF) range so that the disassembler easily knows whether or not to display it. Extended opcodes are in the F0-FF range, as per Openboot tradition. These take the lower eight bits of the opcode from the next byte in the byte stream. They're typically used for words you might not find in an embedded system, such as file access and floating point words. These 256-byte pages can be decoded by separate switch statements.
 
+Rather than have an explosion in the number of opcodes needed to handle small, medium and large literals, only one kind of literal is supported: Variable length. The first byte (byte[0]) of a literal consists of a 3-bit type and a 5-bit k value. The types are decoded as follows:
+
+0. N = k (signed) 
+1. N = k (unsigned)
+2. N = k<<8 + byte[1] (signed)
+3. N = k<<8 + byte[1] (unsigned)
+4. N = k<<16 + byte[1]<<8 + byte[2] (signed)
+5. N = k<<16 + byte[1]<<8 + byte[2] (unsigned)
+6. N = k<<24 + byte[1]<<16 + byte[2]<<8 + byte[3] (signed)
+7. N = byte[1]<<24 + byte[2]<<16 + byte[3]<<8 + byte[4]
+
+This scheme should decode nicely with a switch statement and some byte-oriented moves. The compiler chooses the lowest type ID that fits the number. The sizes and ranges of the types are:
+
+0. 1 byte, -16 to +15
+1. 1 byte, 0 to +31
+2. 2 bytes, -4096 to +4095
+3. 2 bytes, 0 to 8191
+4. 3 bytes, -1048576 to +1048575
+5. 3 bytes, 0 to +2097151
+6. 4 bytes, -268435456 to +268435455
+7. 5 bytes, -2147483648 to +2147483647
+
 DEFERed words shared by JS and Forth should call a JS function that has default JS and Forth usages. An array of deferFn[] elements would be a handy place to keep such DEFERed words. Each deferFn would have a JS function and a Forth address. An address of 0 causes the JS function to be used. Otherwise, a call is made to the Forth address.
 
 Implementing double precision arithmetic such as UM/MOD and UM\* will require some finesse, since JavaScript doesn't do 64-bit integers. First, the operands are checked to see if they fit a 32-bit operation. If not, things get done the "slow" way. Multiply is done using four 16\*16 operations. Divide is done using either shift-and-subtract or several 32/16 divides.
