@@ -42,4 +42,9 @@ There is aren't many VM registers to display: Program counter (PC), SP, RP, UP a
 
 There should be a hex dump and/or watch windows. Both can be displayed in panes. Pane configuration such as format and start address can be set by form elements.
 
+## High Level Debug
+
+The VM view is replaced with a console pane since the VM is now hosting a Forth system. Jquery is a nice console app. It looks like a typical monochrome command line. There might be other command terminals with keyboard history. Would be nice.
+
+
 
