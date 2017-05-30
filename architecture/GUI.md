@@ -1,81 +1,45 @@
-# Beforth – A JavaScript-powered Forth Development Environment
+# GUI
 
-## Preliminary Musings
-Why JavaScript? It’s available everywhere there’s a browser. Windows, Mac and Linux all support the Chrome browser, for example. Note that JavaScript is like Java about as much as Latinos speak Latin. They’re totally different animals. JavaScript (JS) has loose type checking and a Python-like feel. JS uses a JIT compiler which makes it about as fast as C. JIT should be quick for a relatively simple app such as Beforth.
+The GUI has access to all of the browser's graphical capabilities. They should be utilized. Some possible panes are:
 
-Beforth will be a JS-based Forth that supports compilation and execution of Forth. It should be implemented as a minimal kernel in JS, which loads the rest of the system from Forth source as needed. It can use a bytecode VM to execute compiled code. It should be possible to instrument the VM so as to allow single step debugging, undo-style backward stepping, breakpoints, etc. For speed, a subset of JS called asm.js should be used for the VM.
+1. The console. It's the scrollable text output used by a command line interpreter.
+2. Keyboard history.
+3. VM registers and stack contents.
+4. Graphic window for simulation of embedded system LCDs.
+5. A text editor. Off-the-shelf text editor such as ACE (provides Forth syntax hilighting).
 
-Beforth could be a platform for cross development. Cross development would be an environment that loads and runs on top of Beforth. It only needs local COM port or TCP access, which some browsers support when running JS locally. Such port access should be in the VM.
+There should be a row of buttons for launching special activities. Maybe they could be customizable. Source code should be compiled by one of these buttons (the Build button) or a function key. The project file is expected to select the project directory and build the project. The compiler builds a cross reference structure as it compiles. This would used in conjunction with the internal text editor state to pop up cross reference information as an aid to editing.
 
-The system consists of three files loaded in order:
+The source file ID is saved in a word's header structure so that it can be viewed easily. In the case of a word with redefinitions, you should be notified if there are multiple instances of the word. The number of instances back should be adjustable in this case so you can skip over the more recent redefinitions. 
 
-vm.js, the VM. Loaded by JS to define the VM and memory spaces. It loads:
-Beforth.js, the compiler. Loaded by JS to define the outer loop. It INCLUDEs:
-Beforth.f, the system. Loaded by the outer loop to define the system.
-## Development Strategy
-There are some jobs to do before actually implementing Beforth. The project will be implemented in JS and hosted in Github. That means:
+Tabs are a popular way to set up HTML pages. Some possible tabs are:
+1. Low level debug tab. This single steps through the VM. The left pane is the VM state. The right pane is the source code or a disassembly view. The right pane might not be very smart (as in read-only), but is does highlight the PC position.
+2. High level debug tab. This is the Forth view. The left pane is a console. The right pane is the source code.
+2. Extra console tab. This replaces the editor tab with other views such as graphic window, stack views, keyboard history, etc.
 
-- Learn the workflow of Github.
-- Learn the workflow of JS.
-- Work out an IDE layout with split panes, tabs, etc.
-- Test the console components that will be needed by Beforth.
-- Create tools for instrumenting the VM
-- Create the VM
-- Create the Forth
-- Create the Forth system
+Text editor integration is important to some tabs. ACE provides the following functions:
 
-Development of the JS can be accomplished with (or without) the help of various IDEs. The JS should be called from within a web page and use the browser API (for example HTML5) to talk to the user interface. It should be possible to double-click on the HTML page in the local file system and have the browser launch it. 
+1. Get the current cursor line and column: `editor.selection.getCursor();` Used to look up a word for setting breakpoints, hyperlinking to definitions, seeing word statistics, disassembling a word, checking word statistics, etc. Redefinitions can be handled by ensuring that neighboring words in the editor make sense.
 
-The browser API must have the following capabilities:
-Access files.
-Access serial ports and/or network sockets.
-Implement a console window.
+2. Assign key bindings to a custom function: `editor.commands.addCommand` Used to invoke the above-mentioned cool toys.
 
-It should also have:
-Support for tabs or panes.
-Multi-color support.
-Refresh of HTML on demand.
+A command to hilight text would be a nice-to-have when running the debugger. However, its lack is no problem. It's probably better to not be dependent on advanced features, so the editor can be replaced if necessary.
 
-The JS development strategy is to instrument the hell out of it. Forth itself provides a lot of instrumentation. However, before the Forth has been bootstrapped up, it’s necessary to provide JS views of what the Forth rides on. This includes hex dumps of various memory spaces and the VM state.
+## Common Layout
 
-To help with debugging, the VM should be able to accept external commands from other apps (such as a commercial Forth). The communication channel for this can be a Null-modem emulator such as com0com. Code running in the VM can be debugged with a thin-client debugger.
+The tabs share a common screen that has control buttons and possibly menus across the top. The favicon and page title show up in the browser tab. Within the browser screen, there are tabs along the top. Each tab opens a different HTML page. Each page has a combination of status dialog items and console windows.
 
-Re-creating the classic Forth console is the first task in developing a user interface. The old "dumb terminal" style keeps the focus on the last-typed lines as well as the last output text. Split the screen into console and text editor HTML views. The views can be refreshed/reloaded as needed. There are multi-pane terminals online, for example https://codepen.io/AndrewBarfield/pen/qEqWMq.
+# Low Level Debug
 
-One pane should support an editor and the other should support the console. There should be a project file that can be loaded with a button click. 
+In the editor, F4 sets the breakpoint register to the word in the editor. The breakpoint can also be set manually.
 
-The editor window should be able to handle the single stepping hilighting as a cursor moves over words being executed. Compilation builds up a list of cursor positions and other cross reference items for use by the editor. The editor code tracks the mouse to pop up mouseover text that load up a cross reference pane with things like:
+F6 steps the VM one instruction.
+F5 runs until breakpoint.
 
-Real-time monitoring of variable value
-Words that use this word
-Words that this word uses
-Source code of the word
-Other statistics
+There are three stack displays: Data, Return and Float. The float stack is part of JS so the depth is easy to find. The data and return stacks have depths dependent on SP0 and RP0, which are registers in the VM (or fixed data memory locations) instead of Forth USER variables. The VM uses them to check for underflow. The return stack display attempts to translate stack element values into word names.
 
-A project file is a collection of "includes" and other declarations. The project file is specified along with the directory of the project. A build compiles the project anew or starting at the last gild point.
+There is aren't many VM registers to display: Program counter (PC) and breakpoint (BKP). They are displayed in an HTML form.
 
-The cross reference structure can provide a measure of factorization quality of a file by the following metrics: Coupling and Cohesion. These are reference counts divided by the total references.
+There should be a hex dump and/or watch windows. Both can be displayed in panes. Pane configuration such as format and start address can be set by form elements.
 
-Coupling: Measure how many references the file makes outside of itself (besides the basic wordsets), and how many different files reference it. These would be two scores.
-
-Cohesion: Measure how many times (above once) that a word references a word in the same file.
-
-The 3-dimensional factorization score could be converted into a single score.
-
-The compiler should export HTML hyperlinked files that you can open in another browser tab.
-
-## Color Schemes
-Syntax highlighting
-Stack highlighting
-Reference highlighting
-
-Cross reference colorization would colorize external references both in and out (different colors), words with a single internal reference, and words that are never referenced.
-
-Stack highlighting uses stack depth tracked by the compiler. 
-
-Syntax highlighting colors words based on their wordset and function. It’s like typical highlighting.
-
-The structure of source code in memory is an array of bytes such as ASCII or UTF8. Each byte has an associated 32-bit pointer to a reference structure. All bytes of blank-delimited string point to a the reference structure for that word. All other character locations have a pointer value of 0. A colorize structures are laid down in header space as needed. They are only referenced by the source code reference pointers. Editing handles source code in 40-bit characters. Inserting and deleting characters moves source code accordingly so that references stay with their words. Modifying a word should wipe its references, since they are no longer valid.
-
-Real-time syntax highlighting is sometimes used to conjure up a dimly remembered keyword. Rather than highlight in real time, build applies the highlights. You can turn autocomplete to show a list of possible words based on the current word at the cursor.
 
