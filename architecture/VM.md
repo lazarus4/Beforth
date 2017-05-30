@@ -14,16 +14,14 @@ RAM is initialized to all zeros at startup. IDATA is just as well avoided. If yo
 
 Fetch is a different operation depending on the address space. Code space may be internal or external flash, for example. There are two ways to handle this. One way is to have a smart fetch. The upper bits of the address determine where to read from. The other way is to provide separate words for the two kinds of fetch. There should be an option to use either smart or dumb fetch when compiling. System code can use either. User code has the option of using one or the other depending on an option setting. 
 
-Implementing the VM in JavaScript, the memory spaces are declared as byte buffers. CM and DM are code and data memories respectively. For example:
+Implementing the VM in JavaScript, the memory spaces are declared as Typed array. Native array is about the same, but there's no guarantee that native is 32-bit. DataView is very slow: Do not use. CM and DM are code and data memories respectively. For example:
 
 ```
-var littleEndian = true;
-var CM = new DataView(new ArrayBuffer(65536), 0); // declare code space
-CM.setInt32(addr, data, littleEndian);            // store 32-bit to code space
-data = CM.getInt32(addr, littleEndian);           // fetch 32-bit from code space
+var arraySize = 10000;
+var DM = new Int32Array(4 * arraySize);           // data memory is cells 
+var CM = new Int8Array(arraySize);                // code memory is bytes 
 ```
-
-Other memory transfer widths use getUint8, getUint16, getint16, etc. Apparently JS abstracts away address misalignment, but the VM can optionally check for that to make sure your code will run on VMs that do care about address alignment.
+Memory transfer widths other than the declared memory types are handled by shift-and-mask code. Code activity is mostly bytes, data activity is mostly cells. Thus the different data types. The VM should complain about address misalignment.
 
 The code and data address spaces don’t overlap even though in the smart fetch case they could. In hex, the address ranges are:
 
