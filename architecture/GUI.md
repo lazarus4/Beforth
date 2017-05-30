@@ -46,5 +46,15 @@ There should be a hex dump and/or watch windows. Both can be displayed in panes.
 
 The VM view is replaced with a console pane since the VM is now hosting a Forth system. Jquery is a nice console plug-in. It looks like a typical monochrome command line. It also features keyboard history, cut&paste, etc. Not bad. ACCEPT in Forth calls PAUSE until a text line is received from Jquery. An even simpler terminal is *terminal.js*. No keyboard history there.
 
+The editor pane allows editing as well as hyperlinking and hinting. Hints are output to the console.
+
+## Extra Console
+
+The editor pane is replaced with a simulated LCD screen. Touch screens are quickly becoming part of everyday embedded systems. The LCD (such as TFT 240 x 320) and its touch screen are simulated here. A few buttons should be included: simple on/off flags that the Forth can check.
+
+The simulated LCD could double as a graphic terminal if you're not into the embedded scene.
+
+
+
 
 
