@@ -5,14 +5,14 @@ Undo would be handled by a doubly linked list of data structures containing old 
 
 When a VM run-time error occurs, such as accessing undefined memory or underflowing/overflowing a stack, you can step backwards in the execution thread to see where it went wrong.
 
-The VM’s code space contains only code. Data space is separate. The CDATA and UDATA descriptors switch between the two when the application is compiling data to the dictionary.
+The VM’s code space contains only code and read-only data. Data space is separate. The CDATA and UDATA descriptors switch between the two when the application is compiling data to the dictionary.
 
 ## VM memory model
-Code space is assumed to be readable, but writable only under certain conditions. The VM restricts write activity by providing a stop condition for debugging.
+Code space is assumed to be readable, but writable only under certain conditions. The VM restricts write activity by providing an optional stop condition for debugging.
 
 RAM is initialized to all zeros at startup. IDATA is just as well avoided. If you want data initialized, you can just as easily do it yourself.
 
-Fetch is a different operation depending on the address space. Code space may be internal or external flash, for example. There are two ways to handle this. One way is to have a smart fetch. The upper bits of the address determine where to read from. The other way is to provide separate words for the two kinds of fetch. There should be an option to use either smart or dumb fetch when compiling. System code can use either. User code has the option of using one or the other depending on an option setting. 
+Fetch is a different operation depending on the address space. Code space may be internal or external flash, for example. There are two ways to handle this. One way is to have a smart fetch. The upper bits of the address determine where to read from. The other way is to provide separate words for the two kinds of fetch. There should be an option to use either smart or dumb fetch when compiling. System code can use either. User code has the option of using one or the other depending on an option setting. For example, legacy code might use @ to fetch from code space. That needs a smart fetch. But, new code could use @C to fetch from code space to allow a simpler @. Backward compatibility would be facilitated by `: @C @ ;`.
 
 Implementing the VM in JavaScript, the memory spaces are declared as Typed array. Native array is about the same, but there's no guarantee that native is 32-bit. DataView is very slow: Do not use. CM and DM are code and data memories respectively. For example:
 
