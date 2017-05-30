@@ -20,8 +20,8 @@ Tabs are a popular way to set up HTML pages. Some possible tabs are:
 Text editor integration is important to some tabs. ACE provides the following functions:
 
 1. Get the current cursor line and column: `editor.selection.getCursor();` Used to look up a word for setting breakpoints, hyperlinking to definitions, seeing word statistics, disassembling a word, checking word statistics, etc. Redefinitions can be handled by ensuring that neighboring words in the editor make sense.
-
-2. Assign key bindings to a custom function: `editor.commands.addCommand` Used to invoke the above-mentioned cool toys.
+2. Go to a line: `editor.gotoLine(lineNumber);` Used for hyperlinking.
+3. Assign key bindings to a custom function: `editor.commands.addCommand` Used to invoke the above-mentioned cool toys.
 
 A command to hilight text would be a nice-to-have when running the debugger. However, its lack is no problem. It's probably better to not be dependent on advanced features, so the editor can be replaced if necessary.
 
