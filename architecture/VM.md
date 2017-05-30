@@ -23,12 +23,12 @@ var CM = new Int8Array(arraySize);                // code memory is bytes
 ```
 Memory transfer widths other than the declared memory types are handled by shift-and-mask code. Code activity is mostly bytes, data activity is mostly cells. Thus the different data types. The VM should complain about address misalignment.
 
-The code and data address spaces don’t overlap even though in the smart fetch case they could. In hex, the address ranges are:
+The code and data address spaces don’t overlap even though in the smart fetch case they could. Literals are signed, so we want addresses to have small absolute values. In hex, the address ranges could be:
 
-- `00000000` to `00FFFFFF`	Data space
-- `80000000` to `80FFFFFF`	Code space
-- `FF000000` to `FFFFFFFF`	I/O space
-- `FE000000` to `FE0000FF`	VM registers
+- `00000000` to `00FFFFFF`	Code space, start address is 0.
+- `FF000000` to `FFFFFFFF`	Data space, start address is (-DM.length)
+- `FE000000` to `FE0000FF`	VM registers (PC, SP, RP, etc.)
+- `FD000000` to `FDFFFFFF`	I/O space (could be used by VM in embedded systems)
 
 The single stepper uses these addresses as tokens. The program counter (PC), for example, could be VMreg[0].
 
@@ -41,7 +41,7 @@ The VM uses a tight loop that fetches the next 8-bit instruction and executes it
 2. Use a function table whose index is the command byte. An execution table, in other words.
 3. Use a combination of these: the switch’s default goes to an execution table. 
 
-The execution table option allows the easy addition of ad-hoc “code words” by user-generated JS files in the project. It also renders those VM primitives late-bound. For the sake of simplicity, speed and flexibility in opcode assignment, option 1 is used. Tokens that take immediate data (a variable length byte sequence following the opcode) are placed at the end of the (0-255) range so that the disassembler easily knows whether or not to display it.
+The execution table option allows the easy addition of ad-hoc “code words” by user-generated JS files in the project. It also renders those VM primitives late-bound. For the sake of simplicity, speed and flexibility in opcode assignment, option 1 is used. Tokens that take immediate data (a variable length byte sequence following the opcode) are placed at the end of the (00-EF) range so that the disassembler easily knows whether or not to display it. Extended opcodes are in the F0-FF range, as per Openboot tradition. These take the lower eight bits of the opcode from the next byte in the byte stream. They're typically used for words you might not find in an embedded system, such as file access and floating point words. These 256-byte pages can be decoded by separate switch statements.
 
 DEFERed words shared by JS and Forth should call a JS function that has a default JS and Forth usage. An array of deferFn[] elements would be a handy place to keep such DEFERed words. Each deferFn would have a JS function and a Forth address. An address of 0 causes the JS function to be used. Otherwise, a call is made to the Forth address.
 
