@@ -14,34 +14,28 @@ RAM is initialized to all zeros at startup. IDATA is just as well avoided. If yo
 
 Fetch is a different operation depending on the address space. Code space may be internal or external flash, for example. There are two ways to handle this. One way is to have a smart fetch. The upper bits of the address determine where to read from. The other way is to provide separate words for the two kinds of fetch. There should be an option to use either smart or dumb fetch when compiling. System code can use either. User code has the option of using one or the other depending on an option setting. 
 
+Implementing the VM in JavaScript, the memory spaces are declared as byte buffers. CM and DM are code and data memories respectively. For example:
+
+```
+var littleEndian = true;
+var CM = new DataView(new ArrayBuffer(65536), 0); // declare code space
+CM.setInt32(addr, data, littleEndian);            // store 32-bit to code space
+data = CM.getInt32(addr, littleEndian);           // fetch 32-bit from code space
+```
+
+Other memory transfer widths use getUint8, getUint16, getint16, etc. Apparently JS abstracts away address misalignment, but the VM can optionally check for that to make sure your code will run on VMs that do care about address alignment.
+
 The code and data address spaces don’t overlap even though in the smart fetch case they could. In hex, the address ranges are:
 
-`00000000` to `00FFFFFF`	Data space
-
-`80000000` to `80FFFFFF`	Code space
-
-`FF000000` to `FFFFFFFF`	I/O space
-
-`FE000000` to `FE0000FF`	VM registers
+- `00000000` to `00FFFFFF`	Data space
+- `80000000` to `80FFFFFF`	Code space
+- `FF000000` to `FFFFFFFF`	I/O space
+- `FE000000` to `FE0000FF`	VM registers
 
 The single stepper uses these addresses as tokens. The program counter (PC), for example, could be VMreg[0].
 
 ## VM metal
-Memory spaces are declared as arrays of 32-bit values. Octets and half-words are handled by the appropriate shift-and-mask operations. The browser environment can afford a little increase in code space for the sake of speed, so VM instructions are 32-bit: 8-bit instruction and 24-bit literal. The 8-bit instruction is dispatched by the switch statement, which may either use or ignore the 24-bit literal.
-
-Examples of instructions that would use the 24-bit literal are CALL, JUMP, LIT24, +LIT, @LIT, etc. Several pinhole optimizations are easy enough to implement that literals can be rolled into many instructions.
-
-This should make for about 2:1 or 3:1 code bloat compared to a byte-oriented VM, which is basically nothing compared to industry standard code bloat. The alternative is to extract octets from the code stream, an operation that would be done for each instruction. Too slow.
-
-Address units are bytes. This means a speed penalty when using bytes because of the need to handle all of the alignment combinations. But, it’s worth it. The VM should include a floating point stack that allows access to the asm.js floating point library.
-
-Stacks are kept in data memory. Stack pointers are “registers” that are ¼ the data address. SP@ and friends convert back and forth by shifting two places. The top of the data stack is in a “register”, as with most classic Forths. DUP could be defined as:
-
-```
-function DUP() {
-  tos = dm[sp++];
-}
-```
+Stacks are kept in data memory. Stack pointers are registers. The top of the data stack is in a register, as with most classic Forths. Other registers are SP, RP and UP. 
 
 The VM uses a tight loop that fetches the next instruction and executes it. Some ideas for execution::
 
@@ -53,6 +47,7 @@ The execution table option allows the easy addition of ad-hoc “code words” b
 
 The execution table could be a means of DEFER if the VM can generate JS at run time and tell the browser to execute it. This doesn’t seem practical. DEFERed words shared by JS and Forth should call a JS function that has a default JS and Forth usage. An array of deferFn[] elements would be a handy place to keep such DEFERed words. Each deferFn would have a JS function and a Forth address. An address of 0 causes the JS function to be used. Otherwise, a call is made to the Forth address.
 
+Implementing double precision arithmetic such as UM/MOD and UM\* will require some finesse, since JavaScript doesn't do 64-bit integers. First, the operands are checked to see if they fit a 32-bit operation. If not, things get done the "slow" way. Multiply is done using four 16\*16 operations. Divide is done using either shift-and-subtract or several 32/16 divides.
 
 ## Headers
 The header space is a collection of arrays, each of which contains a different element a word’s vital statistics. For example, a simple implementation could have wordNames[], wordAddress[] and wordWID[] defined. A dictionary search would use lastIndexOf() to find the index of a string token.
