@@ -44,7 +44,7 @@ There should be a hex dump and/or watch windows. Both can be displayed in panes.
 
 ## High Level Debug
 
-The VM view is replaced with a console pane since the VM is now hosting a Forth system. Jquery is a nice console app. It looks like a typical monochrome command line. There might be other command terminals with keyboard history. Would be nice.
+The VM view is replaced with a console pane since the VM is now hosting a Forth system. Jquery is a nice console app. It looks like a typical monochrome command line. It also features keyboard history, cut&paste, etc. Not bad. ACCEPT in Forth calls PAUSE until a text line is received from Jquery.
 
 
 
