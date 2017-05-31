@@ -17,7 +17,7 @@ Fetch is a different operation depending on the address space. Code space may be
 Implementing the VM in JavaScript, the memory spaces are declared as Typed array. Native array is about the same, but there's no guarantee that native is 32-bit. DataView is very slow: Do not use. CM and DM are code and data memories respectively. For example:
 
 ```
-var arraySize = 10000;
+var arraySize = 65536;
 var DM = new Int32Array(4 * arraySize);           // data memory is cells 
 var CM = new Int8Array(arraySize);                // code memory is bytes 
 ```
@@ -26,11 +26,19 @@ Memory transfer widths other than the declared memory types are handled by shift
 The code and data address spaces don’t overlap even though in the smart fetch case they could. Literals are signed, so we want addresses to have small absolute values. In hex, the address ranges could be:
 
 - `00000000` to `00FFFFFF`	Code space, start address is 0.
-- `FF000000` to `FFFFFFFF`	Data space, start address is (-DM.length)
+- `FF000000` to `FFFFFFFF`	Data space, start address is (-DM.length). Use a DM size that's a power of 2.
 - `FE000000` to `FE0000FF`	VM registers (PC, SP, RP, etc.)
 - `FD000000` to `FDFFFFFF`	I/O space (could be used by VM in embedded systems)
 
 The single stepper uses these addresses as tokens. The program counter (PC), for example, could be VMreg[0].
+
+Execution tokens, for example used by EXECUTE, are either VM bytecodes or addresses in code space. EXECUTE treates negative numbers as VM bytecodes. For example, the EXECUTE instruction does a 1s complement negate (~xt) to get the bytecode to execute. An xt of -1 executes bytecode 0.
+
+Data space is sized as a power of 2 to allow easy translation of small negative numbers to an index range that starts at 0. For example:
+
+- Declare the size mask: `var maskDM = 0xFFFF;` The JIT compiler should understand that this is a constant.
+- Store to the SP (SP!): `SP = vmPop() & maskDM;` Strips the upper bits 
+- Fetch from the SP (SP@): `vmPush(SP | (~maskDM));` Restores the upper bits 
 
 ## VM metal
 Stacks are kept in data memory. Stack pointers are registers. The top of the data stack is in a register, as with most classic Forths. Other registers are SP, RP and UP. 
@@ -41,9 +49,9 @@ The VM uses a tight loop that fetches the next 8-bit instruction and executes it
 2. Use a function table whose index is the command byte. An execution table, in other words.
 3. Use a combination of these: the switch’s default goes to an execution table. 
 
-For the sake of simplicity, speed and flexibility in opcode assignment, option 1 is used. Tokens that take immediate data (a variable length byte sequence following the opcode) are placed at the end of the (00-EF) range so that the disassembler easily knows whether or not to display it. Extended opcodes are in the F0-FF range, as per Openboot tradition. These take the lower eight bits of the opcode from the next byte in the byte stream. They're typically used for words you might not find in an embedded system, such as file access and floating point words. These 256-byte pages can be decoded by separate switch statements.
+For the sake of simplicity, speed and flexibility in opcode assignment, option 1 is used. Tokens that take immediate data (a variable length byte sequence following the opcode) are grouped together so that the disassembler easily knows whether or not to display immediate data. Extended opcodes are in the F0-FF range, as per Openboot tradition. These take the lower eight bits of the opcode from the next byte in the byte stream. They're typically used for words you might not find in an embedded system, such as file access and floating point words. These 256-byte pages can be decoded by separate switch statements.
 
-Rather than have an explosion in the number of opcodes needed to handle small, medium and large literals, only one kind of literal is supported: Variable length. The first byte (byte[0]) of a literal consists of a 3-bit type and a 5-bit k value. The types are decoded as follows:
+Rather than have an explosion in the number of opcodes needed to handle small, medium and large literals, a variable length literal is used by most literal-using opcodes. The first byte (byte[0]) of a literal consists of a 3-bit type and a 5-bit k value. The types are decoded as follows:
 
 0. N = k (signed) 
 1. N = k (unsigned)
@@ -69,3 +77,31 @@ DEFERed words shared by JS and Forth should call a JS function that has default 
 
 Implementing double precision arithmetic such as UM/MOD and UM\* will require some finesse, since JavaScript doesn't do 64-bit integers. First, the operands are checked to see if they fit a 32-bit operation. If not, things get done the "slow" way. Multiply is done using four 16\*16 operations. Divide is done using either shift-and-subtract or several 32/16 divides.
 
+Rather than taking the classic approach of `: * UM* DROP ;`, the VM provides a single \* primitive and expects things like UM\* and M\* to be defined in Forth. Note that /\* is a primitive. JS will use the FPU to execute it. UM\* isn't so tough: Use \* four times to multiply 16-bit numbers and merge the results. This means that scaling tricks like `scaleVal M* NIP` will be slower, not faster, than `scaleVal 65536 */`. Note that in the latter case, 65536 is a power of 2 so the optimizer (or you) could optimize out the division if needed.
+
+UM/MOD is not a VM primitive. Numeric conversion uses a bignum-like primitive that uses an 8-bit divisor and 64-bit dividend.
+
+## Opcode map
+The opcodes range from 00 to FF. To group them by their immediate data usage:
+- 00 to n-1 = No immediate data used.
+- n to m-1 = Smart immediate literal is used.
+- m to FF = Unsigned 8-bit literal is used.
+
+Let n and m be defined by `FirstSmartImmediate = 0x80` and `FirstByteImmediate = 0xE0` in the JS. The optimal values depend on how the opcode map fills out as instructions are added to the VM.
+
+The N range includes CALL, JUMP, 0JUMP, +LIT, ANDLIT, etc.
+
+The M range includes VMFUNC, PAGE0, PAGE1, etc. PAGEn is a range of extended opcodes. VMFUNC is a shared JS/Forth function. There can be up to 256 of these. Their default action is JS, but they can be directed use to Forth by the opcode `REDIRECT ( xt fn# -- )`.
+
+## Usage
+The basic Forth system is designed as a kernel that can run stand-alone in an embedded system. In other words, the code image compiled by the JS can conceivably be copied over to a static ROM image and run in an embedded system. The VM is simple enough to port to the embedded system, so it doesn't need any JS. Essentially, Beforth is an embedded system simulator with the cross compiler written in JS.
+
+The console is by default used by the JS interpreter. The interpreter behaves in different ways depending on the context. 
+
+- In low level debugging, it directly controls the VM by bookmarking the return stack, calling the word to execute, and stepping the VM until the return stack is empty (or blown).
+- In high level debugging, it sends commands to the VM's COMMAND task (a thin client) through a real or simulated communication channel.
+- In stand-alone mode, the VM has copied header information into its code space and has its own CLI. The terminal sends straight text, behaving like a dumb terminal.
+
+The communication protocol is to be shared between "dumb terminal" and "stand-alone" modes. Basically, the thin client uses an escape sequence to intercept strings that would normally go to the TIB. It also returns results in an escape string that the terminal can treat appropriately. Escape characters should be in the 80-BF range so as to allow UTF-8 symbols. The escape char used is `ESC _` (0x9f, APC – Application Program Command) which marks the beginning of a thin-client command. `ESC \` (0x9c, ST – String Terminator) marks the end. The first byte in an escape sequence is the overall length. The overall length may be used by a receive ISR on the thin client to determine how many characters to expect, or ignored if the thin client evaluates incoming bytes in real time.
+
+The thin client avoids the use of bytes in the 80-9F range. In this case, byte b is re-mapped to 80 n, where n is (b & 0F) + 40.
