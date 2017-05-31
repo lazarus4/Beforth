@@ -32,7 +32,7 @@ The code and data address spaces don’t overlap even though in the smart fetch 
 
 The single stepper uses these addresses as tokens. The program counter (PC), for example, could be VMreg[0].
 
-Execution tokens, for example used by EXECUTE, are either VM bytecodes or addresses in code space. EXECUTE treates negative numbers as VM bytecodes. For example, the EXECUTE instruction does a 1s complement negate (~xt) to get the bytecode to execute. An xt of -1 executes bytecode 0.
+Execution tokens, for example used by `EXECUTE ( xt -- )`, are either VM bytecodes or addresses in code space. EXECUTE treates negative numbers as VM bytecodes. For example, the EXECUTE instruction does a 1s complement negate (~xt) to get the bytecode to execute. An xt of -1 executes bytecode 0.
 
 Data space is sized as a power of 2 to allow easy translation of small negative numbers to an index range that starts at 0. For example:
 
