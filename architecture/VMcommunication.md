@@ -1,6 +1,6 @@
 # VM communication
 The communication protocol is to be shared between "dumb terminal" and "stand-alone" modes. Basically, the thin client uses an escape 
-sequence to intercept strings that would normally go to the TIB. It also returns results in an escape string that the terminal can treat 
+sequence to intercept strings that would normally go to the TIB (or a bit bucket). It also returns results in an escape string that the terminal can treat 
 appropriately. Escape characters should be in the 80-BF range so as to allow UTF-8 symbols. 
 The escape char used is `ESC _` (0x9f, APC – Application Program Command) which marks the beginning of a thin-client command. 
 `ESC \` (0x9c, ST – String Terminator) marks the end. 
