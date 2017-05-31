@@ -91,7 +91,7 @@ Let n and m be defined by `FirstSmartImmediate = 0x80` and `FirstByteImmediate =
 
 The N range includes CALL, JUMP, 0JUMP, +LIT, ANDLIT, etc.
 
-The M range includes VMFUNC, PAGE0, PAGE1, etc. PAGEn is a range of extended opcodes. VMFUNC is a shared JS/Forth function. There can be up to 256 of these. Their default action is JS, but they can be directed use to Forth by the opcode `REDIRECT ( xt fn# -- )`.
+The M range includes VMFUNC, PAGE0, PAGE1, etc. PAGEn is a range of extended opcodes. VMFUNC is a shared JS/Forth DEFERed word. There can be up to 256 of these. Their default action is JS, but they can be directed use to Forth by the opcode `REDIRECT ( xt fn# -- )`. The JS behavior can be restored with `UNDIRECT ( fn# -- )`.
 
 ## Usage
 The basic Forth system is designed as a kernel that can run stand-alone in an embedded system. In other words, the code image compiled by the JS can conceivably be copied over to a static ROM image and run in an embedded system. The VM is simple enough to port to the embedded system, so it doesn't need any JS. Essentially, Beforth is an embedded system simulator with the cross compiler written in JS.
