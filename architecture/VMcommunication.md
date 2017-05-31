@@ -63,6 +63,6 @@ Output: {1 byte ACK/NACK}. ACK if valid write, NACK if not. This is a little tri
 ROM could be flash memory, which has device-specific constraints. The VM may have to erase a page before writing, for example.
 
 ## Startup
-At startup, a word `SAFEMODE? ( -- flag )` is used to determine whether or not to run the application. This allows recovery from bricked apps by not launching them. If `SAFEMODE` returns true, only the DEBUG task is run.
+At startup, a word `SAFEMODE? ( -- flag )` is used to determine whether or not to run the application. This allows recovery from bricked apps by not launching them. If `SAFEMODE?` returns true, only the DEBUG task is run.
 
 
