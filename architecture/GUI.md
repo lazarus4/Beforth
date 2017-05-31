@@ -7,6 +7,7 @@ The GUI has access to all of the browser's graphical capabilities. They should b
 3. VM registers and stack contents.
 4. Graphic window for simulation of embedded system LCDs.
 5. A text editor. Off-the-shelf text editor such as ACE (provides Forth syntax hilighting).
+6. Search order, Base and connection status.
 
 There should be a row of buttons for launching special activities. Maybe they could be customizable. Source code should be compiled by one of these buttons (the Build button) or a function key. The project file is expected to select the project directory and build the project. The compiler builds a cross reference structure as it compiles. This would used in conjunction with the internal text editor state to pop up cross reference information as an aid to editing.
 
@@ -47,9 +48,9 @@ In the editor, F4 sets the breakpoint register to the word in the editor. The br
 F6 steps the VM one instruction.
 F5 runs until breakpoint.
 
-The "editor pane" isn't really an editor. It's a view of either the source code or VM assembly or both, converted to HTML and reloaded at each instruction step. So, it could be slow. You *are* running the js on the client side, right? Fortunately, the HTML only spans your browser screen height so it's not too much.
+The "editor pane" isn't really an editor. It's a view of either the source code or VM assembly or both, painted on a HTML5 cancas at each instruction step.
 
-There are three stack displays: Data, Return and Float. The float stack is part of JS so the depth is easy to find. The data and return stacks have depths dependent on SP0 and RP0, which are Forth USER variables. The VM may use them to check for underflow. If UP is 0, SP0 and RP0 are undefined so a fixed number of stack items are displayed. The return stack display attempts to translate stack element values into word names. The VM should be able to cache SP0 and UP0 as registers, refreshing them when UP changes. 
+There are three stack displays: Data, Return and Float. The float stack is part of JS so the depth is easy to find. The data and return stacks have depths dependent on SP0 and RP0, which are Forth USER variables. The VM may use them to check for underflow. If UP is 0, SP0 and RP0 are undefined so a fixed number of stack items are displayed. The return stack display attempts to translate stack element values into word names.  
 
 There is aren't many VM registers to display: Program counter (PC), SP, RP, UP and breakpoint (BKP). They could be displayed in an HTML form.
 
