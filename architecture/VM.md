@@ -1,16 +1,16 @@
 # VM
-The VM has the option of weak or strong error checking. It may also perform single stepping. The internal state of the VM should be viewable during single stepping. An undo should be able to step backwards through execution.
 
-Undo would be handled by a doubly linked list of data structures containing old and new values and a “register ID”, which means all components of the VM should be defined in array. This list could be built in a big chunk of allocated RAM. When it gets to the end of that space, it wraps to the beginning. It removes the oldest elements to make space for new elements. Since JS doesn't do explicit allocation, the list can be handled by the JS and the deleted elements reclaimed by GC.
+The Beforth VM is a small bytecode interpreter that is equally at home on the desktop and in small embedded systems. The VM and the Forth system are written from the point of view of a small MCU. The essential parts of the runtime system are contained in the VM and optional compiler extensions are added in a way that allows the Forth and the user application to be ported over to an MCU. 
 
-When a VM run-time error occurs, such as accessing undefined memory or underflowing/overflowing a stack, you can step backwards in the execution thread to see where it went wrong.
-
-The VM’s code space contains only code and read-only data. Data space is separate. The CDATA and UDATA descriptors switch between the two when the application is compiling data to the dictionary.
+The VM has the following system features:
+- 32-bit cell size.
+- 8-bit address units.
+- Switchable between little-endian (default) and big-endian.
+- Separate floating point stack. Floating point is optional.
+- Restricted to operations that can be expressed in both JS and C. This affects 64-bit math.
 
 ## VM memory model
-Code space is assumed to be readable, but writable only under certain conditions. The VM restricts write activity by providing an optional stop condition for debugging.
-
-RAM is initialized to all zeros at startup. IDATA is just as well avoided. If you want data initialized, you can just as easily do it yourself.
+The VM’s code space contains only code and read-only data. Data space is separate. Code space is assumed to be readable, but writable only under certain conditions. The CDATA and UDATA descriptors switch between the two when the application is compiling data to the dictionary. RAM is initialized to all zeros at startup. IDATA is just as well avoided. If you want data initialized, you can just as easily do it yourself.
 
 Fetch is a different operation depending on the address space. Code space may be internal or external flash, for example. There are two ways to handle this. One way is to have a smart fetch. The upper bits of the address determine where to read from. The other way is to provide separate words for the two kinds of fetch. There should be an option to use either smart or dumb fetch when compiling. System code can use either. User code has the option of using one or the other depending on an option setting. For example, legacy code might use @ to fetch from code space. That needs a smart fetch. But, new code could use @C to fetch from code space to allow a simpler @. ANS compatibility would be facilitated by `: @C @ ;`.
 
@@ -105,3 +105,13 @@ The console is by default used by the JS interpreter. The interpreter behaves in
 The communication protocol is to be shared between "dumb terminal" and "stand-alone" modes. Basically, the thin client uses an escape sequence to intercept strings that would normally go to the TIB. It also returns results in an escape string that the terminal can treat appropriately. Escape characters should be in the 80-BF range so as to allow UTF-8 symbols. The escape char used is `ESC _` (0x9f, APC – Application Program Command) which marks the beginning of a thin-client command. `ESC \` (0x9c, ST – String Terminator) marks the end. The first byte in an escape sequence is the overall length. The overall length may be used by a receive ISR on the thin client to determine how many characters to expect, or ignored if the thin client evaluates incoming bytes in real time.
 
 The thin client avoids the use of bytes in the 80-9F range. In this case, byte b is re-mapped to 80 n, where n is (b & 0F) + 40.
+## Single Stepping
+The VM should have reversible single stepping, letting you step backwards through execution. When a VM run-time error occurs, such as accessing undefined memory or underflowing/overflowing a stack, you can step backwards in the execution thread to see where it went wrong.
+
+Undo would be handled by a doubly linked list of data structures containing old and new values and a “register ID”, which means all components of the VM should be defined in array. This list could be built in a big chunk of allocated RAM. When it gets to the end of that space, it wraps to the beginning. It removes the oldest elements to make space for new elements. Since JS doesn't do explicit allocation, the list can be handled by the JS and the deleted elements reclaimed by GC.
+
+The VM has the option of weak or strong error checking. Strong error checking would perform more checks at each instruction step. The VM restricts write activity to code space by providing an optional run-time check.
+
+
+
+
