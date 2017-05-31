@@ -26,7 +26,7 @@ The source file ID is saved in a word's header structure so that it can be viewe
 Tabs are a popular way to set up HTML pages. Some possible tabs are:
 1. Low level debug tab. This single steps through the VM. The left pane is the VM state. The right pane is the source code or a disassembly view. The right pane might not be very smart (as in read-only), but is does highlight the PC position.
 2. High level debug tab. This is the Forth view. The left pane is a console. The right pane is the source code.
-2. Extra console tab. This replaces the editor tab with other views such as graphic window, stack views, keyboard history, etc.
+2. Plug-ins tab. This replaces the editor tab with other views such as graphic window, stack views, keyboard history, etc.
 
 Text editor integration is important to some tabs. ACE provides the following functions:
 
@@ -47,7 +47,9 @@ In the editor, F4 sets the breakpoint register to the word in the editor. The br
 F6 steps the VM one instruction.
 F5 runs until breakpoint.
 
-There are three stack displays: Data, Return and Float. The float stack is part of JS so the depth is easy to find. The data and return stacks have depths dependent on SP0 and RP0, which are Forth USER variables. The VM uses them to check for underflow. The return stack display attempts to translate stack element values into word names. The VM should be able to cache SP0 and UP0 as registers, refreshing them when UP changes. 
+The "editor pane" isn't really an editor. It's a view of either the source code or VM assembly or both, converted to HTML and reloaded at each instruction step. So, it could be slow. You *are* running the js on the client side, right? Fortunately, the HTML only spans your browser screen height so it's not too much.
+
+There are three stack displays: Data, Return and Float. The float stack is part of JS so the depth is easy to find. The data and return stacks have depths dependent on SP0 and RP0, which are Forth USER variables. The VM may use them to check for underflow. If UP is 0, SP0 and RP0 are undefined so a fixed number of stack items are displayed. The return stack display attempts to translate stack element values into word names. The VM should be able to cache SP0 and UP0 as registers, refreshing them when UP changes. 
 
 There is aren't many VM registers to display: Program counter (PC), SP, RP, UP and breakpoint (BKP). They could be displayed in an HTML form.
 
@@ -57,15 +59,15 @@ There should be a hex dump and/or watch windows. Both can be displayed in panes.
 
 The VM view is replaced with a console pane since the VM is now hosting a Forth system. Jquery is a nice console plug-in. It looks like a typical monochrome command line. It also features keyboard history, cut&paste, etc. Not bad. ACCEPT in Forth calls PAUSE until a text line is received from Jquery. An even simpler terminal is *terminal.js*. No keyboard history there.
 
-The editor pane allows editing as well as hyperlinking and hinting. Hints are output to the console.
+The editor pane allows editing as well as hyperlinking and hinting. Hints are output to the console. Here's where the ACE editor is used.
 
-## Extra Console
+## Plug-ins
 
-The editor pane is replaced with a simulated LCD screen. Touch screens are quickly becoming part of everyday embedded systems. The LCD (such as TFT 240 x 320) and its touch screen are simulated here. A few buttons should be included: simple on/off flags that the Forth can check.
+The editor pane is replaced with a plug-in. 
 
-The simulated LCD could double as a graphic terminal if you're not into the embedded scene.
+An example of a plug-in (that I would like) is a simulated LCD screen. Touch screens are quickly becoming part of everyday embedded systems. The LCD (such as TFT 240 x 320) and its touch screen are simulated here. A few buttons should be included: simple on/off flags that the Forth can check. The simulated LCD could double as a graphic terminal if you're not into the embedded scene.
 
-
+Other plug-ins would be views of the task queue, watch lists, etc.
 
 
 
