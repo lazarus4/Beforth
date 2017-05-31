@@ -30,9 +30,9 @@ Some responses may be sent asynchronously depending on other conditions. For exa
 ### 01 = EXECUTE
 Takes stack input, executes the xt, and returns the contents of the stack.
 
-Input: {1 byte n, n*4 bytes stackInfo}. stackInfo is pushed onto the stack in order of reception.
+Input: {1 byte n, n\*4 bytes stackInfo}. stackInfo is pushed onto the stack in order of reception. 
+The incoming stack is ( ... xt base ). The host expects ( ... ior base ) in the output stack. ior is the return value of CATCH, which is used to execute the xt.
 
-Output: {1 byte 0, 1 byte ior, 1 byte n, n*4 bytes stackInfo}. The 0 byte marks the beginning of a response. 
-ior is the return value of CATCH, which is used to execute the xt. stackInfo is popped from the stack in order.
+Output: {1 byte ACK, 1 byte n, n\*4 bytes stackInfo}. The ACK marks the beginning of a response. stackInfo is popped from the stack in order.
 ### 02 = RAM_READ
 
