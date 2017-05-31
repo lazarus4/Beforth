@@ -7,7 +7,7 @@ The wordNames array consists of strings. It’s initially populated by the vm.js
 
 The lastIndexOf() function starts either at the end of the string list or at a specific end point and scans toward the beginning. This makes it easy to support multiple wordlists. If the wordWID of the found string token doesn’t match the current search order ID, it keeps searching backward for the next instance of the string token.
 
-Note that lastIndexOf is an O(N) operation, so it will take some time to traverse a long list of names. This is especially true in this implementation, where all Forth wordlists are kept on one mondo list. Hashing it into several different arrays of strings will speed lookup. A new name gets appended to the string array whose index it hashes to. Likewise, lookup picks the string array using the hash. The name array record includes an index to the unhashed header information. 
+Note that lastIndexOf is an O(N) operation, so it will take some time to traverse a long list of names. This is especially true in this implementation, where all Forth wordlists are kept in one mondo list. Hashing it into several different arrays of strings will speed lookup. A new name gets appended to the string array whose index it hashes to. Likewise, lookup picks the string array using the hash. The name array record includes an index to the unhashed header information. 
 
 The search order is a list of WORDLIST elements that contain a WID and name string. The name string is the WID number by default and is changed by a keyword such as `WORDLIST-NAME ( <name> -- )` that assigns a name string to the last WID for the benefit of `ORDER`.
 
