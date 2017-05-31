@@ -1,13 +1,17 @@
 # Headers
 The header space is a collection of arrays, each of which contains a different element a word’s vital statistics. For example, a simple implementation could have wordNames[], wordAddress[] and wordWID[] defined. A dictionary search would use lastIndexOf() to find the index of a string token.
 
-Arrays in JS are dynamic: grow as you go. This is no problem for the header structure, because that’s what it does. When a MARKER is executed, the arrays are truncated (slice method) to the corresponding snapshot state. The header array could contain such fields as Name, Address and WID. However, lastIndexOf should be assumed to be an O(N) operation. Hashing it into several different arrays of strings will speed lookup. A new name gets appended to the string array whose index it hashes to. Likewise, lookup picks the string array using the hash. The name array record includes an index to the unhashed header information.
+Arrays in JS are dynamic: grow as you go. This is no problem for the header structure, because that’s what it does. When a MARKER is executed, the arrays are truncated (slice method) to the corresponding snapshot state. The header array could contain such fields as Name, Address and WID. 
 
 The wordNames array consists of strings. It’s initially populated by the vm.js file. Note: name strings may need escape sequences \”, \’ or \\.
 
 The lastIndexOf() function starts either at the end of the string list or at a specific end point and scans toward the beginning. This makes it easy to support multiple wordlists. If the wordWID of the found string token doesn’t match the current search order ID, it keeps searching backward for the next instance of the string token.
 
-The wordWID values start from 0 and increase by 1. WORDLIST returns the next value. The search order is an array of WIDs whose length is tracked by WIDS. 
+Note that lastIndexOf is an O(N) operation, so it will take some time to traverse a long list of names. This is especially true in this implementation, where all Forth wordlists are kept on one mondo list. Hashing it into several different arrays of strings will speed lookup. A new name gets appended to the string array whose index it hashes to. Likewise, lookup picks the string array using the hash. The name array record includes an index to the unhashed header information. 
+
+The search order is a list of WORDLIST elements that contain a WID and name string. The name string is the WID number by default and is changed by a keyword such as `WORDLIST-NAME ( <name> -- )` that assigns a name string to the last WID for the benefit of `ORDER`.
+
+The wordWID values start from 1 and increase by 1. WORDLIST returns the next value. The search order is an array of WIDs whose length is tracked by WIDS. 
 
 The wordAddress element can be a packed array of this structure:
 {smudge.1, immediate.1, type.1, forthComp.1, forthInt.1, address}. 
