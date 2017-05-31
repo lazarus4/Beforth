@@ -40,6 +40,16 @@ Data space is sized as a power of 2 to allow easy translation of small negative 
 - Store to the SP (SP!): `SP = vmPop() & maskDM;` Strips the upper bits 
 - Fetch from the SP (SP@): `vmPush(SP | (~maskDM));` Restores the upper bits 
 
+The way memory is used is central to the VM. The UP register points to a Task Control Block (TCB), a small buffer in RAM that's used by a round-robin cooperative multitasker.
+![Stacks Illustration](https://github.com/lazarus4/Beforth/raw/master/architecture/stacks.png)
+The first USER variable of the task is FOLLOWER. FOLLOWER is placed first because it's a data address, which is a negative number. If the return stack underflows, the negative return address generates an exception in the VM. The USER variables in task space are:
+- Follower: address of the next task's status 
+- Status: xt of word that resumes this task 
+- RP0: initial return stack pointer      
+- SP0: initial data stack pointer        
+- TOS: -> top of saved stack                   
+- Handler: catch/throw handler               
+
 ## VM metal
 Stacks are kept in data memory. Stack pointers are registers. The top of the data stack is in a register, as with most classic Forths. Other registers are SP, RP and UP. 
 
