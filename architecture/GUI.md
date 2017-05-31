@@ -10,6 +10,17 @@ The GUI has access to all of the browser's graphical capabilities. They should b
 
 There should be a row of buttons for launching special activities. Maybe they could be customizable. Source code should be compiled by one of these buttons (the Build button) or a function key. The project file is expected to select the project directory and build the project. The compiler builds a cross reference structure as it compiles. This would used in conjunction with the internal text editor state to pop up cross reference information as an aid to editing.
 
+Features that are nice to have in a Forth:
+- LOCATE 
+- EDIT 
+- WHERE 
+- SEE 
+- being able to turn the optimizer off 
+- DASM 
+- DUMP 
+- Single Stepping 
+- the system being written in Forth (mostly)
+
 The source file ID is saved in a word's header structure so that it can be viewed easily. In the case of a word with redefinitions, you should be notified if there are multiple instances of the word. The number of instances back should be adjustable in this case so you can skip over the more recent redefinitions. 
 
 Tabs are a popular way to set up HTML pages. Some possible tabs are:
