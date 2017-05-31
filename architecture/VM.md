@@ -41,7 +41,7 @@ Data space is sized as a power of 2 to allow easy translation of small negative 
 - Fetch from the SP (SP@): `vmPush(SP | (~maskDM));` Restores the upper bits 
 
 The way memory is used is central to the VM. The UP register points to a Task Control Block (TCB), a small buffer in RAM that's used by a round-robin cooperative multitasker.
-![Stacks Illustration](https://github.com/lazarus4/Beforth/raw/master/architecture/stacks.png)
+![Stacks Illustration](https://github.com/lazarus4/Beforth/raw/master/architecture/stacks1.png)
 The first USER variable of the task is FOLLOWER. FOLLOWER is placed first because it's a data address, which is a negative number. If the return stack underflows, the negative return address generates an exception in the VM. The USER variables in task space are:
 - Follower: address of the next task's status 
 - Status: xt of word that resumes this task 
