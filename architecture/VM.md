@@ -112,9 +112,6 @@ The console is by default used by the JS interpreter. The interpreter behaves in
 - In high level debugging, it sends commands to the VM's COMMAND task (a thin client) through a real or simulated communication channel.
 - In stand-alone mode, the VM has copied header information into its code space and has its own CLI. The terminal sends straight text, behaving like a dumb terminal.
 
-The communication protocol is to be shared between "dumb terminal" and "stand-alone" modes. Basically, the thin client uses an escape sequence to intercept strings that would normally go to the TIB. It also returns results in an escape string that the terminal can treat appropriately. Escape characters should be in the 80-BF range so as to allow UTF-8 symbols. The escape char used is `ESC _` (0x9f, APC – Application Program Command) which marks the beginning of a thin-client command. `ESC \` (0x9c, ST – String Terminator) marks the end. The first byte in an escape sequence is the overall length. The overall length may be used by a receive ISR on the thin client to determine how many characters to expect, or ignored if the thin client evaluates incoming bytes in real time.
-
-The thin client avoids the use of bytes in the 80-9F range. In this case, byte b is re-mapped to 80 n, where n is (b & 0F) + 40. This allows the ISR to only care about looking for APC and ST when deciding where to direct the stream, and treat 80 as a special case. The host end gets the same simplicity.
 ## Single Stepping
 The VM should have reversible single stepping, letting you step backwards through execution. When a VM run-time error occurs, such as accessing undefined memory or underflowing/overflowing a stack, you can step backwards in the execution thread to see where it went wrong.
 
