@@ -27,12 +27,42 @@ Some responses may be sent asynchronously depending on other conditions. For exa
 - 0x06 = ACK, command was successful
 - 0x15 = NACK, command was not successful
 
-### 01 = EXECUTE
+Numbers are big-endian.
+### 00 = Hard Reset
+Resets the VM.
+### 01 = Get register contents
+Sends back VM internal state. May return nothing.
+### 02 = Ping
+Output: {1 byte ACK, 2 byte cmdlength}. The cmdlength is the maximum command length supported by the system. Usually, it's what you feel comfortable processing (making the system wait on) or the size your input buffer can handle if not real-time. 
+### 03 = EXECUTE
 Takes stack input, executes the xt, and returns the contents of the stack.
 
 Input: {1 byte n, n\*4 bytes stackInfo}. stackInfo is pushed onto the stack in order of reception. 
 The incoming stack is ( ... xt base ). The host expects ( ... ior base ) in the output stack. ior is the return value of CATCH, which is used to execute the xt.
 
 Output: {1 byte ACK, 1 byte n, n\*4 bytes stackInfo}. The ACK marks the beginning of a response. stackInfo is popped from the stack in order.
-### 02 = RAM_READ
+### 04 = RAM_READ
+Reads from data space.
+
+Input: {4 byte Address, 2 byte n}.
+Output: {1 byte ACK/NACK, n+1 bytes data}. ACK if valid read address, NACK if not.
+### 05 = RAM_WRITE
+Writes to data space.
+
+Input: {4 byte Address, 2 byte n, n+1 bytes data}.
+Output: {1 byte ACK/NACK}. ACK if valid write address, NACK if not.
+### 06 = ROM_READ
+Reads from code space.
+Input: {4 byte Address, 2 byte n}.
+Output: {1 byte ACK/NACK, n+1 bytes data}. ACK if valid read address, NACK if not.
+### 07 = ROM_WRITE
+Writes to code space.
+
+Input: {4 byte Address, 2 byte n, n+1 bytes data}.
+Output: {1 byte ACK/NACK}. ACK if valid write, NACK if not. This is a little tricky, because not all VMs are the same. 
+ROM could be flash memory, which has device-specific constraints. The VM may have to erase a page before writing, for example.
+
+## Startup
+At startup, a word `SAFEMODE? ( -- flag )` is used to determine whether or not to run the application. This allows recovery from bricked apps by not launching them. If `SAFEMODE` returns true, only the DEBUG task is run.
+
 
