@@ -11,27 +11,27 @@ As header space is built, a table for reverse lookup should be built for transla
 
 A wordlist ID (WID) is a pointer to a hash list, an array of pointers to the ends of various lists of headers. A header chain starts with this hash list. A wordlist should have a prime number of hash threads: 31 to 129 is good in plactice, 3 is used for illustration. A new wordlist chunk, created by WORDLIST, looks like this:
 ```
-Cell Name______  Value Meaning__________________________________________________                                                   
-0    THREADS     3     Number of threads in the hash table, WID points here.     
-1    THREAD[0]   0     Pointers to end of list, 0 if list is empty.              
-2    THREAD[1]   0                                                               
-3    THREAD[2]   0                                                               
-4    NAMESTRUCT  0     Pointer to NAMESTRUCT of this wordlist. 0 if nonexistent. 
+Cell Name______  Value Meaning__________________________________________________
+0    THREADS     3     Number of threads in the hash table, WID points here.    
+1    THREAD[0]   0     Pointers to end of list, 0 if list is empty.             
+2    THREAD[1]   0                                                              
+3    THREAD[2]   0                                                              
+4    NAMESTRUCT  0     Pointer to NAMESTRUCT of this wordlist. 0 if nonexistent.
 ```
 ### NAMESTRUCT chunk
 
 A NAMESTRUCT only needs a name, but it contains additional instrumentation information.
 
 ```
-Cell Name______  Value Meaning__________________________________________________                                                   
-0    NAME        ?     Packed counted string up to 256 bytes long.               
-n    FEATURES    ?     Various compiler flags and features.                      
-n+1  INTERPRET   0     xt of INTERPRET semantics. 0 if none .                    
-n+2  COMPILE     0     xt of COMPILE semantics. 0 if none.                       
-n+3  USED        0     Pointer to "This word is referenced by" list.             
-n+4  USES        0     Pointer to "This word references" list.                   
-n+5  LOCATE      0     Pointer to LOCATE structure, 0 if not available.          
-n+6  DATA        0     One or more cells of data used by the semantics.             
+Cell Name______  Value Meaning__________________________________________________
+0    NAME        ?     Packed counted string up to 256 bytes long.              
+n    FEATURES    ?     Various compiler flags and features.                     
+n+1  INTERPRET   0     xt of INTERPRET semantics. 0 if none .                   
+n+2  COMPILE     0     xt of COMPILE semantics. 0 if none.                      
+n+3  USED        0     Pointer to "This word is referenced by" list.            
+n+4  USES        0     Pointer to "This word references" list.                  
+n+5  LOCATE      0     Pointer to LOCATE structure, 0 if not available.         
+n+6  DATA        0     One or more cells of data used by the semantics.         
 ```
 The FEATURES cell is packed as follows: {smudge.1, immediate.1, type.1, color.3, address}. 
 The smudge bit is set during compilation of a word to make it non-findable until ‘;’ successfully executes. Dictionary search will also look at the smudge bit. The address is evaluated by a 1-bit type: {token, vmCode}. Color is used for color highlighting.
@@ -51,12 +51,12 @@ Cell Name______  Value Meaning__________________________________________________
 
 The LOCATE chunk marks the source code file of a word. The FILEID may be a filename (captured by INCLUDED) or a manually-set web URL. In the URL case, FILEPOS could be an anchor ID number.
 ```
-Cell Name______  Value Meaning__________________________________________________                                                   
-0    FILEID      ?     Pointer to filename string.                                 
-1    FILEPOS     ?     Bytes from beginning of file.                              
-2    STACKPIC    ?     Pointer to this word's stack picture.                              
-3    SUMMARY     ?     Pointer to this word's summary.                              
-4    GLOSSARY    ?     Pointer to this word's glossary entry.                              
+Cell Name______  Value Meaning__________________________________________________
+0    FILEID      ?     Pointer to filename string.                              
+1    FILEPOS     ?     Bytes from beginning of file.                            
+2    STACKPIC    ?     Pointer to this word's stack picture.                    
+3    SUMMARY     ?     Pointer to this word's summary.                          
+4    GLOSSARY    ?     Pointer to this word's glossary entry.                   
 ```
 The input stream is shared by the JS interpreter and the VM. That means >IN and TIB are at a fixed address in data memory. These addresses are constants as far as either is concerned. JS implements the QUIT loop and the outer interpreter. String tokens (blank delimited strings) are either numeric tokens for the VM or call addresses that reference code space. Code space starts out empty. It gets built up by the JS interpreter. The Forth system is loaded at startup from source. The VM contains all of the basic Forth “amino acids” so that it can build itself.
 
