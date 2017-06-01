@@ -1,27 +1,62 @@
 # Headers
-The header space is a collection of arrays, each of which contains a different element a word’s vital statistics. For example, a simple implementation could have wordNames[], wordAddress[] and wordWID[] defined. A dictionary search would use lastIndexOf() to find the index of a string token.
+JavaScript has lots of cool tools for manipulating arrays and building header structures. Alas, the header structure must be accessible later on by the VM for extensibility. The header structure must be explicitly known, so it's built up in a big fixed-size array:
 
-Arrays in JS are dynamic: grow as you go. This is no problem for the header structure, because that’s what it does. When a MARKER is executed, the arrays are truncated (slice method) to the corresponding snapshot state. The header array could contain such fields as Name, Address and WID. 
+`var HM = new Int32Array(arraySizeHeaders);`
 
-The wordNames array consists of strings. It’s initially populated by the vm.js file. Note: name strings may need escape sequences \”, \’ or \\.
+Array elements are 32-bit. Pointers are zero-referenced: HM[0] is the beginning. Name strings are 32-bit aligned (padded with zeros) and packed/unpacked to use 32-bit storage. Header space may be read or written at will. Before code is loaded, JS manages header space. There are also JS functions for searching and appending the search order. These are DEFERed words that may be replaced by Forth. The header space is basically the Forth dictionary, minus code and data. HHERE and HORG explicitly operate on the variable HP, the next free byte in the dictionary. The dictionary is expanded by appending chunks and linking them into the header structure.
 
-The lastIndexOf() function starts either at the end of the string list or at a specific end point and scans toward the beginning. This makes it easy to support multiple wordlists. If the wordWID of the found string token doesn’t match the current search order ID, it keeps searching backward for the next instance of the string token.
+### WORDLIST chunk
 
-Note that lastIndexOf is an O(N) operation, so it will take some time to traverse a long list of names. This is especially true in this implementation, where all Forth wordlists are kept in one mondo list. Hashing it into several different arrays of strings will speed lookup. A new name gets appended to the string array whose index it hashes to. Likewise, lookup picks the string array using the hash. The name array record includes an index to the unhashed header information. 
+A wordlist ID (WID) is a pointer to a hash list, an array of pointers to the ends of various lists of headers. A header chain starts with this hash list. A wordlist should have a prime number of hash threads: 31 to 129 is good in plactice, 3 is used for illustration. A new wordlist chunk, created by WORDLIST, looks like this:
 
-The search order is a list of WORDLIST elements that contain a WID and name string. The name string is the WID number by default and is changed by a keyword such as `WORDLIST-NAME ( <name> -- )` that assigns a name string to the last WID for the benefit of `ORDER`.
+| Cell | Name          | Value | Meaning                                                   |
+| ---- |:-------------:| ------:----------------------------------------------------------:|
+| 0    | THREADS       | 3     | Number of threads in the hash table, WID points here.     |
+| 1    | THREAD[0]     | 0     | Pointers to end of list, 0 if list is empty.              |
+| 2    | THREAD[1]     | 0     |                                                           |
+| 3    | THREAD[2]     | 0     |                                                           |
+| 4    | NAMESTRUCT    | 0     | Pointer to NAMESTRUCT of this wordlist. 0 if nonexistent. |
 
-The wordWID values start from 1 and increase by 1. WORDLIST returns the next value. The search order is an array of WIDs whose length is tracked by WIDS. 
+### NAMESTRUCT chunk
 
-The wordAddress element can be a packed array of this structure:
-{smudge.1, immediate.1, type.1, forthComp.1, forthInt.1, address}. 
-The smudge bit is set during compilation of a word to make it non-findable until ‘;’ successfully executes. Dictionary search will also look at the smudge bit. The address (which starts at 0) is evaluated by a 1-bit type: {token, vmCode}. 
+A NAMESTRUCT only needs a name, but it contains additional instrumentation information.
 
-The semanticsCompile element of the header is the function to be performed when STATE is 1. The function can compile a call, skip past a comment, perform tail call optimization, etc. If forthComp=1, it’s a Forth function. Otherwise, it’s a JS function. The Forth system appends the compiler by setting forthComp.
+| Cell | Name          | Value | Meaning                                                   |
+| ---- |:-------------:| ------:----------------------------------------------------------:|
+| 0    | NAME          | ?     | Packed counted string up to 256 bytes long.               |
+| n    | FEATURES      | ?     | Various compiler flags and features.                      |
+| n+1  | INTERPRET     | 0     | xt of INTERPRET semantics. 0 if none .                    |
+| n+2  | COMPILE       | 0     | xt of COMPILE semantics. 0 if none.                       |
+| n+3  | USED          | 0     | Pointer to "This word is referenced by" list.             |
+| n+4  | USES          | 0     | Pointer to "This word references" list.                   |
+| n+5  | LOCATE        | 0     | Pointer to LOCATE structure, 0 if not available.          |
 
-The semanticsInterpret element of the header is the JS function to be performed when STATE is 0. The function can execute the word, skip past a comment, push a number to the stack, etc.  If forthInt=1, it’s a Forth function. Otherwise, it’s a JS function. 
+The FEATURES cell is packed as follows: {smudge.1, immediate.1, type.1, color.3, address}. 
+The smudge bit is set during compilation of a word to make it non-findable until ‘;’ successfully executes. Dictionary search will also look at the smudge bit. The address (which starts at 0) is evaluated by a 1-bit type: {token, vmCode}. Color is used for color highlighting.
 
-Some ideas for extra fields: Word type, file ID. 
+## USED and USES chunks
+
+The USED list is a singly linked of NAMESTRUCTs that references this one. The first addition to the list appends a USED chunk to the dictionary with a link value of 0. Subsequent USED chunks have a link to the previous link. USES is the same structure applied slightly differently.
+
+| Cell | Name          | Value | Meaning                                                     |
+| ---- |:-------------:| ------:------------------------------------------------------------:|
+| 0    | NAMESTRUCT    | ?     | NAMESTRUCT that references (or is referenced by) this word. |
+| 1    | LINK          | ?     | 0 if first element, link to previous otherwise.             |
+| n+1  | INTERPRET     | 0     | xt of INTERPRET semantics. 0 if none .                      |
+
+## LOCATE chunk
+
+The LOCATE chunk marks the source code file of a word. Rather than just save one file position, why not support saving the nested 
+positions of all INCLUDEd files? The LOCATE chunk is a linked list:
+
+| Cell | Name          | Value | Meaning                                                     |
+| ---- |:-------------:| ------:------------------------------------------------------------:|
+| 0    | FILEID        | ?     | Pointer to filename string.                                 | 
+| 1    | LINK          | ?     | 0 if first element, link to previous otherwise.             |
+| 2    | FILEPOS       | ?     | Bytes from beginning of file.                               |
+
+A new FILEID string is compiled for each INCLUDED file. The location of the string is saved on a FILEID stack so a word has a list of all of its FILEIDs.
+
 
 Beforth adds some goodies to instrument the code. An array of “referenced by” elements contains a dynamic list of indicies of words that reference the word, which could be used by WHERE. An array of “references” elements contains a dynamic list of indicies of words that are referenced by the word. This pair of arrays forms the cross reference structure.
 
