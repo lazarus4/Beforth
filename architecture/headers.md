@@ -51,7 +51,7 @@ Cell Name______  Value Meaning__________________________________________________
 ```
 ## LOCATE chunk
 
-The LOCATE chunk marks the source code file of a word. The FILEID may be a filename (captured by INCLUDED) or a manually-set web URL. In the URL case, FILEPOS could be an anchor ID number.
+The LOCATE chunk marks the source code file of a word. The FILEID may be a filename (captured by INCLUDED) or a manually-set web URL. In the URL case, FILEPOS could be an pointer to an anchor string.
 ```
 Cell Name______  Value Meaning__________________________________________________
 0    FILEID      ?     Pointer to filename string.                              
