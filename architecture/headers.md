@@ -43,9 +43,9 @@ DATA is used by EQU and other codeless constants.
 The USED list is a singly linked of NAMESTRUCTs that references this one. The first addition to the list appends a USED chunk to the dictionary with a link value of 0. Subsequent USED chunks have a link to the previous link. USES is the same structure applied slightly differently.
 
 ```
-Cell Name______  Value Meaning__________________________________________________                                                   
-0    NAMESTRUCT  ?     NAMESTRUCT that references (or is referenced by) this word. 
-1    LINK        ?     0 if first element, link to previous otherwise.             
+Cell Name______  Value Meaning__________________________________________________
+0    NAMESTRUCT  ?     NAMESTRUCT that references (or is referenced by) this word.
+1    LINK        ?     0 if first element, link to previous otherwise.         
 ```
 ## LOCATE chunk
 
