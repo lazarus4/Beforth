@@ -5,67 +5,59 @@ JavaScript has lots of cool tools for manipulating arrays and building header st
 
 Array elements are 32-bit. Pointers are zero-referenced: HM[0] is the beginning. Name strings are 32-bit aligned (padded with zeros) and packed/unpacked to use 32-bit storage. Header space may be read or written at will. Before code is loaded, JS manages header space. There are also JS functions for searching and appending the search order. These are DEFERed words that may be replaced by Forth. The header space is basically the Forth dictionary, minus code and data. HHERE and HORG explicitly operate on the variable HP, the next free byte in the dictionary. The dictionary is expanded by appending chunks and linking them into the header structure.
 
+As header space is built, a table for reverse lookup should be built for translating code addresses into header indicies. The address is inserted into the list so as to keep it sorted. A binary search traverses the list to find the header index of the word that compiled that address.
+
 ### WORDLIST chunk
 
 A wordlist ID (WID) is a pointer to a hash list, an array of pointers to the ends of various lists of headers. A header chain starts with this hash list. A wordlist should have a prime number of hash threads: 31 to 129 is good in plactice, 3 is used for illustration. A new wordlist chunk, created by WORDLIST, looks like this:
-
-| Cell | Name          | Value | Meaning                                                   |
-| ---- |:-------------:| ------:----------------------------------------------------------:|
-| 0    | THREADS       | 3     | Number of threads in the hash table, WID points here.     |
-| 1    | THREAD[0]     | 0     | Pointers to end of list, 0 if list is empty.              |
-| 2    | THREAD[1]     | 0     |                                                           |
-| 3    | THREAD[2]     | 0     |                                                           |
-| 4    | NAMESTRUCT    | 0     | Pointer to NAMESTRUCT of this wordlist. 0 if nonexistent. |
-
+```
+Cell Name______  Value Meaning__________________________________________________                                                   
+0    THREADS     3     Number of threads in the hash table, WID points here.     
+1    THREAD[0]   0     Pointers to end of list, 0 if list is empty.              
+2    THREAD[1]   0                                                               
+3    THREAD[2]   0                                                               
+4    NAMESTRUCT  0     Pointer to NAMESTRUCT of this wordlist. 0 if nonexistent. 
+```
 ### NAMESTRUCT chunk
 
 A NAMESTRUCT only needs a name, but it contains additional instrumentation information.
 
-| Cell | Name          | Value | Meaning                                                   |
-| ---- |:-------------:| ------:----------------------------------------------------------:|
-| 0    | NAME          | ?     | Packed counted string up to 256 bytes long.               |
-| n    | FEATURES      | ?     | Various compiler flags and features.                      |
-| n+1  | INTERPRET     | 0     | xt of INTERPRET semantics. 0 if none .                    |
-| n+2  | COMPILE       | 0     | xt of COMPILE semantics. 0 if none.                       |
-| n+3  | USED          | 0     | Pointer to "This word is referenced by" list.             |
-| n+4  | USES          | 0     | Pointer to "This word references" list.                   |
-| n+5  | LOCATE        | 0     | Pointer to LOCATE structure, 0 if not available.          |
-
+```
+Cell Name______  Value Meaning__________________________________________________                                                   
+0    NAME        ?     Packed counted string up to 256 bytes long.               
+n    FEATURES    ?     Various compiler flags and features.                      
+n+1  INTERPRET   0     xt of INTERPRET semantics. 0 if none .                    
+n+2  COMPILE     0     xt of COMPILE semantics. 0 if none.                       
+n+3  USED        0     Pointer to "This word is referenced by" list.             
+n+4  USES        0     Pointer to "This word references" list.                   
+n+5  LOCATE      0     Pointer to LOCATE structure, 0 if not available.          
+n+6  DATA        0     One or more cells of data used by the semantics.             
+```
 The FEATURES cell is packed as follows: {smudge.1, immediate.1, type.1, color.3, address}. 
-The smudge bit is set during compilation of a word to make it non-findable until ‘;’ successfully executes. Dictionary search will also look at the smudge bit. The address (which starts at 0) is evaluated by a 1-bit type: {token, vmCode}. Color is used for color highlighting.
+The smudge bit is set during compilation of a word to make it non-findable until ‘;’ successfully executes. Dictionary search will also look at the smudge bit. The address is evaluated by a 1-bit type: {token, vmCode}. Color is used for color highlighting.
+
+DATA is used by EQU and other codeless constants.
 
 ## USED and USES chunks
 
 The USED list is a singly linked of NAMESTRUCTs that references this one. The first addition to the list appends a USED chunk to the dictionary with a link value of 0. Subsequent USED chunks have a link to the previous link. USES is the same structure applied slightly differently.
 
-| Cell | Name          | Value | Meaning                                                     |
-| ---- |:-------------:| ------:------------------------------------------------------------:|
-| 0    | NAMESTRUCT    | ?     | NAMESTRUCT that references (or is referenced by) this word. |
-| 1    | LINK          | ?     | 0 if first element, link to previous otherwise.             |
-| n+1  | INTERPRET     | 0     | xt of INTERPRET semantics. 0 if none .                      |
-
+```
+Cell Name______  Value Meaning__________________________________________________                                                   
+0    NAMESTRUCT  ?     NAMESTRUCT that references (or is referenced by) this word. 
+1    LINK        ?     0 if first element, link to previous otherwise.             
+```
 ## LOCATE chunk
 
-The LOCATE chunk marks the source code file of a word. Rather than just save one file position, why not support saving the nested 
-positions of all INCLUDEd files? The LOCATE chunk is a linked list:
-
-| Cell | Name          | Value | Meaning                                                     |
-| ---- |:-------------:| ------:------------------------------------------------------------:|
-| 0    | FILEID        | ?     | Pointer to filename string.                                 | 
-| 1    | LINK          | ?     | 0 if first element, link to previous otherwise.             |
-| 2    | FILEPOS       | ?     | Bytes from beginning of file.                               |
-
-A new FILEID string is compiled for each INCLUDED file. The location of the string is saved on a FILEID stack so a word has a list of all of its FILEIDs.
-
-
-Beforth adds some goodies to instrument the code. An array of “referenced by” elements contains a dynamic list of indicies of words that reference the word, which could be used by WHERE. An array of “references” elements contains a dynamic list of indicies of words that are referenced by the word. This pair of arrays forms the cross reference structure.
-
-Word type would indicate the color of the word in syntax highlighting. It could also be used for mouseover value inspection. A format indicator could be part of the type. For example, when compiling the current base would be the default format. “HEX VARIABLE FOO” would by default display in hex when you hover over FOO. The default can be changed by the PRAGMA (tentative name) directive, which evaluates until EOL using a special wordlist. FORMAT would be in this wordlist.
-
-As header space is built, a table for reverse lookup should be built for translating code addresses into header indicies. The address is inserted into the list so as to keep it sorted. A binary search traverses the list to find the header index of the word that compiled that address.
-
-The location of the source code should be part of the header.
-
+The LOCATE chunk marks the source code file of a word. The FILEID may be a filename (captured by INCLUDED) or a manually-set web URL. In the URL case, FILEPOS could be an anchor ID number.
+```
+Cell Name______  Value Meaning__________________________________________________                                                   
+0    FILEID      ?     Pointer to filename string.                                 
+1    FILEPOS     ?     Bytes from beginning of file.                              
+2    STACKPIC    ?     Pointer to this word's stack picture.                              
+3    SUMMARY     ?     Pointer to this word's summary.                              
+4    GLOSSARY    ?     Pointer to this word's glossary entry.                              
+```
 The input stream is shared by the JS interpreter and the VM. That means >IN and TIB are at a fixed address in data memory. These addresses are constants as far as either is concerned. JS implements the QUIT loop and the outer interpreter. String tokens (blank delimited strings) are either numeric tokens for the VM or call addresses that reference code space. Code space starts out empty. It gets built up by the JS interpreter. The Forth system is loaded at startup from source. The VM contains all of the basic Forth “amino acids” so that it can build itself.
 
 Sample JS hash function:
