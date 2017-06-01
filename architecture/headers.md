@@ -7,6 +7,8 @@ Array elements are 32-bit. Pointers are zero-referenced: HM[0] is the beginning.
 
 As header space is built, a table for reverse lookup should be built for translating code addresses into header indicies. The address is inserted into the list so as to keep it sorted. A binary search traverses the list to find the header index of the word that compiled that address.
 
+String packing puts the first byte in the low byte of the 32-bit cell. When unpacking into a string, `str[ptr++] = N; N >>= 8;` done four times loads a cell into a string array.
+
 ### WORDLIST chunk
 
 A wordlist ID (WID) is a pointer to a hash list, an array of pointers to the ends of various lists of headers. A header chain starts with this hash list. A wordlist should have a prime number of hash threads: 31 to 129 is good in plactice, 3 is used for illustration. A new wordlist chunk, created by WORDLIST, looks like this:
