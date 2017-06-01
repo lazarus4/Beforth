@@ -14,6 +14,8 @@ The VM’s code space contains only code and read-only data. Data space is separ
 
 Fetch is a different operation depending on the address space. Code space may be internal or external flash, for example. There are two ways to handle this. One way is to have a smart fetch. The upper bits of the address determine where to read from. The other way is to provide separate words for the two kinds of fetch. There should be an option to use either smart or dumb fetch when compiling. System code can use either. User code has the option of using one or the other depending on an option setting. For example, legacy code might use @ to fetch from code space. That needs a smart fetch. But, new code could use @C to fetch from code space to allow a simpler @. ANS compatibility would be facilitated by `: @C @ ;`.
 
+Header space is used by the compiler, which is written in JS to facilitate loading of Forth. Header space needs to be accessible by the VM so that it can take over compilation duties as the system grows. The use of header space by the VM is optional. In the simplest configuration, the VM doesn't touch this space.
+
 Implementing the VM in JavaScript, the memory spaces are declared as Typed array. Native array is about the same, but there's no guarantee that native is 32-bit. DataView is very slow: Do not use. CM and DM are code and data memories respectively. For example:
 
 ```
@@ -26,6 +28,7 @@ Memory transfer widths other than the declared memory types are handled by shift
 The code and data address spaces don’t overlap even though in the smart fetch case they could. Literals are signed, so we want addresses to have small absolute values. In hex, the address ranges could be:
 
 - `00000000` to `00FFFFFF`	Code space, start address is 0.
+- `80000000` to `80FFFFFF`	Header space.
 - `FF000000` to `FFFFFFFF`	Data space, start address is (-DM.length). Use a DM size that's a power of 2.
 - `FE000000` to `FE0000FF`	VM registers (PC, SP, RP, etc.)
 - `FD000000` to `FDFFFFFF`	I/O space (could be used by VM in embedded systems)
@@ -110,7 +113,7 @@ The console is by default used by the JS interpreter. The interpreter behaves in
 
 - In low level debugging, it directly controls the VM by bookmarking the return stack, calling the word to execute, and stepping the VM until the return stack is empty (or blown).
 - In high level debugging, it sends commands to the VM's COMMAND task (a thin client) through a real or simulated communication channel.
-- In stand-alone mode, the VM has copied header information into its code space and has its own CLI. The terminal sends straight text, behaving like a dumb terminal.
+- In stand-alone mode, the VM has copied header information into its code space (of just accesses the host's header space) and has its own CLI. The terminal sends straight text, behaving like a dumb terminal.
 
 ## Single Stepping
 The VM should have reversible single stepping, letting you step backwards through execution. When a VM run-time error occurs, such as accessing undefined memory or underflowing/overflowing a stack, you can step backwards in the execution thread to see where it went wrong.
