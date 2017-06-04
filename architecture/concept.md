@@ -1,9 +1,11 @@
 # Beforth – A JavaScript-powered Forth Development Environment
 
 ## Preliminary Musings
-Why JavaScript? It’s available everywhere there’s a browser. Windows, Mac and Linux all support the Chrome browser, for example. Note that JavaScript is like Java about as much as Latinos speak Latin. They’re totally different animals. JavaScript (JS) has loose type checking and a Python-like feel. JS uses a JIT compiler which makes it about as fast as C. JIT should be quick for a relatively simple app such as Beforth.
+Why JavaScript? It’s available everywhere there’s a browser. Windows, Mac and Linux all support the Chrome browser, for example. Note that JavaScript is like Java about as much as Latinos speak Latin. They’re totally different animals. JavaScript (JS) has loose type checking and a Python-like feel. JS uses a JIT compiler which makes it "about as fast" as C. JIT should be quick for a relatively simple app such as Beforth.
 
-Beforth will be a JS-based Forth that supports compilation and execution of Forth. It should be implemented as a minimal kernel in JS, which loads the rest of the system from Forth source as needed. It can use a bytecode VM to execute compiled code. It should be possible to instrument the VM so as to allow single step debugging, undo-style backward stepping, breakpoints, etc. For speed, a subset of JS called asm.js should be used for the VM.
+The devil is, as always in the details. Apples to apples comparison of C/Enscripten and JS in real world apps like FFTs show about a 2:1 to 3:1 difference. So, the Emscrypten route is certainly tempting. Possibly perilous, but since it's my duty as a programmer to sample as much peril as possible, that will be explored. It sure would be nice to have a single C-based VM that runs on anything.
+
+Beforth will be a JS-based (kinda-mostly) Forth that supports compilation and execution of Forth. It should be implemented as a minimal kernel in JS, which loads the rest of the system from Forth source as needed. It can use a bytecode VM to execute compiled code. It should be possible to instrument the VM so as to allow single step debugging, undo-style backward stepping, breakpoints, etc. For speed, a subset of JS called asm.js should be used for the VM.
 
 Beforth could be a platform for cross development. Cross development would be an environment that loads and runs on top of Beforth. It only needs local COM port or TCP access, which some browsers support when running JS locally. Such port access should be in the VM.
 
