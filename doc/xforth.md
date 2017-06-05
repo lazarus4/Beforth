@@ -28,7 +28,7 @@ For a QUIT loop built on top of a Forth with implementation-dependent header str
 
 *name>cmp*  ( nt –– addr )  The address of name's compilation semantics (2-cell xt w ). `CELL+` in proposed header structure.
 
-*name>string*  ( nt –– addr count )  addr count is the name of the word represented by nt. `2 CELLS + COUNT` in proposed header structure.
+*name>string*  ( nt –– addr count )  addr count is the name of the word represented by nt. `2 CELLS + COUNT 63 AND` in proposed header structure.
 
 ## Header structures
 
