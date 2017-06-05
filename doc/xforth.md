@@ -53,7 +53,9 @@ Smudge would be a minor concession to ANS Forth. Still nice to have to hide bad 
 
 ## Input Stream
 
-The QUIT loop operates on an input stream such as a keyboard buffer (the TIB) or a file. The most common usage of TIB at the application level is to do simple parsing of the input stream. A double VARIABLE called (SOURCE) should be used as the text input buffer. The first cell is the length remeining to be processed and the second cell is the address of the first byte. My code sometimes uses `>IN @` and `>IN !` to parse the input stream twice, but `>IN` could be defined as `(SOURCE) @`. The remainder of the buffer could be `: /SOURCE ( -- c-addr u )  (SOURCE) 2@ /STRING ;`. The idea is to evaluate blocks and files as whole buffers. Elimination of TIB simplifies `(` and other multi-line operations such as `[IF]`. The main difference is that WORD and PARSE don't necessarily recognize line breaks. That's good, you shouldn't depend on them to. `(SOURCE)` should have a third cell, line count, to let parsing words bump it when they see a newline.
+The QUIT loop operates on an input stream such as a keyboard buffer (the TIB) or a file. The TIB is still central to file loading in order to handle a line at a time. It would be a little silly to buffer the whole file before evaluating it. TIB and >IN could still be virtual, components of a 2VARIABLE `(SOURCE)`. To nest into a new source, `(SOURCE)` could be pushed onto the stack. There tends to be a little more information to store during file loading, such as file ID and line number. Such fancy stuff is outside the scope of UIT.
+
+
 
 
 
