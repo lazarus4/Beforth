@@ -22,12 +22,14 @@ If there's anything computing has demonstrated, it's the persistence of data str
 
 The header structure would start with the counted name string. The MSB of the count byte would contain the *creator* flag. Empty bytes between the end of the string and the next CODE-ALIGNED address would be padded with 0. The rest of the header would contain, depending on *creator*:
 
-- 0: *{compile, execute, parm, ...}* 
-- 1: *{compile, execute, parm, compile_sem, execute_sem, ...}* 
+- 0: *{compile, execute, parm, nameString, ...}* 
+- 1: *{compile, execute, parm, nameString, compile_sem, execute_sem, ...}* 
 
 Note that for Forths running on a VM, an xt could be distinguished between Forth and VM functions using the xt's sign bit.
 
-*parm* is a cell that could be the code execution address of a word, a token value for a VM, a literal, or a pointer to a data structure. Extra cells in the header are implementation dependent. They could be links into a cross reference structure, source code information, for example.  
+*parm* is a cell that could be the code execution address of a word, a token value for a VM, a literal, or a pointer to a data structure. Extra cells in the header are implementation dependent. They could be links into a cross reference structure, source code information, for example.
+
+*nameString* is variable length. All fields afterwards take a little (not much) arithmetic to get to from the nt.
 
 ## Whither Smudge
 
