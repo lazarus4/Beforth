@@ -20,7 +20,7 @@ This kind of flexibility simplifies the design of cross compilers. ':' for examp
 
 If there's anything computing has demonstrated, it's the persistence of data structures. Data is like rocks. Code is like sand. It's desirable to define a minimal amount of rock. For the benefit of embedded systems, bloat is optional.
 
-The traditional maximum allowed length of a name in a Forth system is at least 31 characters. This allows three bits of the name string's  to be used as flags. I propose the following flags:
+The traditional maximum allowed length of a name in a Forth system is at least 31 characters. This allows three bits of the name string's  length to be used as flags. I propose the following flags:
 
 - `Creator` is set if this word creates a word that will have semantics.
 - `Virtual` is set if the execution tokens in the header are doubles. Double execution tokens are used when the Forth runs on a virtual machine hosted by another language.
