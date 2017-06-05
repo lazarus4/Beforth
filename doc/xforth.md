@@ -8,7 +8,7 @@ There have been a number of means used to provide separate compile and execution
 The outer loop uses STATE to decide whether to compile or interpret. Interpreting is easy: the xt usually points to the execution address. Compilation requires some tricks. Some Forths use dual wordlists. That complicates the use of the search order, which limits extensibility and ties you to Forth as a language rather than a meta-language.
 
 When QUIT finds a word, the word's execution semantics or compile semantics should be executed depending on the value of STATE. 
-This would make STATE an offset into the word's header structure in Name space. As a reminder, Forth has three basic memory spaces: Name space, where the header structure is built; Code space, where executable code is compiled; and Data space where you put variables and perhaps data structures. Read-only data structures are sometimes kept in code space, but that's a language feature. `FIND` would return a "name token", or nt, to point to the header structure. To compile or execute the word, `STATE @ + @ EXECUTE` would handle the nt. 
+This would make STATE an offset into the word's header structure in Name space. As a reminder, Forth has three basic memory spaces: Name space, where the header structure is built; Code space, where executable code is compiled; and Data space where you put variables and perhaps data structures. Read-only data structures are sometimes kept in code space, but that's a language feature. `FIND` would return a "name token", or nt, to point to the header structure. To compile or execute the word, `@ STATE @ + @ EXECUTE` would handle the nt. 
 
 That is very flexible, perhaps returning Forth to its roots as a virtual language. Various kinds of default semantics are used when building a language such ANS Forth. The foundation for the Forth language is then this QUIT meta-language that you can drill down to as needed. The basic Forth language elements are `:` and `;`. `:` creates a word in Name space with "compile me" and "execute me" default semantics. Where do these default semantics come from? How about we make them variables? Where to store them?
 
@@ -26,11 +26,13 @@ If there's anything computing has demonstrated, it's the persistence of data str
 
 The header structure would start with the counted name string. Empty bytes between the end of the string and the next CODE-ALIGNED address would be padded with 0. The rest of the header would contain at a minimum: 
 
-- *{ROH, compile, execute, parm, [spare]}*. 
+- *{STATES}, a pointer that points to the state list 
+- System dependent fields...
+- *{compile, execute, parm, ...}*. 
 
 Note that for Forths running on a VM, an xt could be distinguished between Forth and VM functions using the xt's sign bit.
 
-ROH is a pointer to the rest of the header, after the STATE list.
+STATES is a pointer to the STATE list. This allows the compiler to build whatever it wants into the header, then add the variable length STATE list last.
 
 *parm* is a cell that could be the code execution address of a word, a token value for a VM, a literal, or a pointer to a data structure. Cells in the header beyond that are implementation dependent. They could be links into a cross reference structure, for example.  
 
