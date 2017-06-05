@@ -16,23 +16,23 @@ Words that create something in a wordlist should have the defaults in their name
 
 This kind of flexibility simplifies the design of cross compilers. ':' for example can easily have its default semantics changed to target a new CPU. Or, its compile semantics can start out dumb and have optimizations added later. A smart language can build itself.
 
+In a cross compiler, for example, TARGET would patch `:` and others to generate machine code for the target processor. Granted, that could be a lot of words. And, if you overwrite defaults, there needs to be a way to restore them. The trick is to allow space in the header structure so that STATE can be modified to use the appropriate xt when generating code, etc. It the COMPILER scope, for example, new definitions affect the corresponding *{compile, execute)* in the word.
+
+This brings up redefinitions. Creation words look for existing word names first. If the name exists and the semantics are defined, it does a redefinition by creating a new structure in namespace. Otherwise, it uses the old header and patches the blank semantics. In Forth, redefinitions aren't necessarily an error. They just mean you don't need that name anymore. You're terminating its scope.
+
 ## Header structures
 
 If there's anything computing has demonstrated, it's the persistence of data structures. Data is like rocks. Code is like sand. It's desirable to define a minimal amount of rock. For the benefit of embedded systems, bloat is optional.
 
-The traditional maximum allowed length of a name in a Forth system is at least 31 characters. This allows three bits of the name string's  length to be used as flags. I propose the following flags:
+The header structure would start with the counted name string. Empty bytes between the end of the string and the next CODE-ALIGNED address would be padded with 0. The rest of the header would contain at a minimum: 
 
-- `Creator` is set if this word creates a word that will have semantics.
-- `Virtual` is set if the execution tokens in the header are doubles. Double execution tokens are used when the Forth runs on a virtual machine hosted by another language.
+- *{ROH, compile, execute, parm, [spare]}*. 
 
-A double execution token would be a Forth xt and a function pointer in the VM's native language. This would allow the VM to use its native code when the Forth xt is 0, or Forth otherwise. The double-setup is represented by having separate Forth and Native VM groups: Two sets of 2 or 4 cells depending on the Creator flag.
+Note that for Forths running on a VM, an xt could be distinguished between Forth and VM functions using the xt's sign bit.
 
-The header structure would pack these bits into the name length byte and fill the rest of the name bytes with the name string. Empty bytes between the end of the string and the next CODE-ALIGNED address would be padded with 0. The rest of the header would contain depending on flags: 
+ROH is a pointer to the rest of the header, after the STATE list.
 
-- *{compile, execute}*. Flags = 00.
-- *{compile, VMcompile, execute, VMexecute}*. Flags = 01.
-- *{compile, execute, compile_sem, execute_sem}*. Flags = 10.
-- *{compile, VMcompile, execute, VMexecute, compile_sem, VMcompile_sem, execute_sem, VMexecute_sem}*. Flags = 11.
+*parm* is a cell that could be the code execution address of a word, a token value for a VM, a literal, or a pointer to a data structure. Cells in the header beyond that are implementation dependent. They could be links into a cross reference structure, for example.  
 
 ## Whither Smudge
 
@@ -42,5 +42,7 @@ So, how would you access a previous definition? How about allowing an xt to be p
 
 ## Input Stream
 
-The QUIT loop operates on an input stream such as a keyboard buffer (the TIB) or a file. The most common usage of TIB at the application level is to do simple parsing of the input stream. A double VARIABLE called (SOURCE) should be used as the text input buffer. The first cell is the length remeining to be processed and the second cell is the address of the first byte. My code sometimes uses `>IN @` and `>IN !` to parse the input stream twice, so `>IN` could be defined as `(SOURCE) @`. The remainder of the buffer could be `: /SOURCE ( -- c-addr u )  (SOURCE) 2@ /STRING ;`. The idea is to evaluate blocks and files as whole buffers. Elimination of TIB simplifies `(` and other multi-line operations such as `[IF]`. The main difference is that WORD and PARSE don't necessarily recognize line breaks. That's good, you shouldn't depend on them to.
+The QUIT loop operates on an input stream such as a keyboard buffer (the TIB) or a file. The most common usage of TIB at the application level is to do simple parsing of the input stream. A double VARIABLE called (SOURCE) should be used as the text input buffer. The first cell is the length remeining to be processed and the second cell is the address of the first byte. My code sometimes uses `>IN @` and `>IN !` to parse the input stream twice, so `>IN` could be defined as `(SOURCE) @`. The remainder of the buffer could be `: /SOURCE ( -- c-addr u )  (SOURCE) 2@ /STRING ;`. The idea is to evaluate blocks and files as whole buffers. Elimination of TIB simplifies `(` and other multi-line operations such as `[IF]`. The main difference is that WORD and PARSE don't necessarily recognize line breaks. That's good, you shouldn't depend on them to. `(SOURCE)` should have a third cell, line count, to let parsing words bump it when they see a newline.
+
+
 
