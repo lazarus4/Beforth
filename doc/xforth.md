@@ -22,13 +22,13 @@ Cross compilers would still use namespace scoping, but be not quite so be depend
 
 *find-name*  ( c-addr u –– nt | 0 ) From gForth, find the name c-addr u in the current search order. Return its nt, if found, otherwise 0.
 
-For a QUIT loop built on top of a Forth with implementation-dependent header structure, I suggest using these gForth words:
+For a QUIT loop built on top of a Forth with implementation-dependent header structure, I suggest using the following words:
 
-*name>int*  ( nt –– xt )  xt represents the interpretation semantics of the word nt. If nt has no interpretation semantics (i.e. is compile-only), xt is the execution token for ticking-compile-only-error, which performs -2048 throw.
+*name>exec*  ( nt –– addr )  The address of name's execution/immediate semantics. `NOOP` in proposed header structure.
 
-*name>comp*  ( nt –– w xt )  w xt is the compilation token for the word nt.
+*name>cmp*  ( nt –– addr )  The address of name's compilation semantics (2-cell xt w ). `CELL+` in proposed header structure.
 
-*name>string*  ( nt –– addr count )  addr count is the name of the word represented by nt.
+*name>string*  ( nt –– addr count )  addr count is the name of the word represented by nt. `2 CELLS + COUNT` in proposed header structure.
 
 ## Header structures
 
