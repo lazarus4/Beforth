@@ -8,7 +8,7 @@ There have been a number of means used to provide separate compile and execution
 The outer loop uses STATE to decide whether to compile or interpret. Interpreting is easy: the xt usually points to the execution address. Compilation requires some tricks. Some Forths use dual wordlists. That complicates the use of the search order, which limits extensibility and ties you to Forth as a language rather than a meta-language.
 
 When QUIT finds a word, the word's execution semantics or compile semantics should be executed depending on the value of STATE. 
-This would make STATE an offset into the word's header structure in Name space. As a reminder, Forth has three basic memory spaces: Name space, where the header structure is built; Code space, where executable code is compiled; and Data space where you put variables and perhaps data structures. Read-only data structures are sometimes kept in code space, but that's a language feature. `FIND` would return a "name token", or nt, to point to the header structure. To compile or execute the word, `STATE @ + @ EXECUTE` would handle the nt. 
+This would make STATE an offset into the word's header structure in Name space. As a reminder, Forth has three basic memory spaces: Name space, where the header structure is built; Code space, where executable code is compiled; and Data space where you put variables and perhaps data structures. Read-only data structures are sometimes kept in code space, but that's a language feature. `FIND-NAME` would return a "name token", or nt, to point to the header structure. To compile or execute the word, `STATE @ + @ EXECUTE` would handle the nt. 
 
 That is very flexible, perhaps returning Forth to its roots as a virtual language. Various kinds of default semantics are used when building a language such ANS Forth. The foundation for the Forth language is then this QUIT meta-language that you can drill down to as needed. The basic Forth language elements are `:` and `;`. `:` creates a word in Name space with "compile me" and "execute me" default semantics. Where do these default semantics come from? How about we make them variables? Where to store them?
 
@@ -18,18 +18,30 @@ Words that create something in a wordlist could have the defaults in their names
 
 Cross compilers would still use namespace scoping, but be not quite so be dependent on it. For example, the TARGET version of ':' would have different default semantics than the HOST version. Since default semantics are patchable, they can start out dumb and have optimizations added later. A smart language can build itself.
 
+## QUIT words
+
+*find-name*  ( c-addr u –– nt | 0 ) From gForth, find the name c-addr u in the current search order. Return its nt, if found, otherwise 0.
+
+For a QUIT loop built on top of a Forth with implementation-dependent header structure, I suggest using these gForth words:
+
+*name>int*  ( nt –– xt )  xt represents the interpretation semantics of the word nt. If nt has no interpretation semantics (i.e. is compile-only), xt is the execution token for ticking-compile-only-error, which performs -2048 throw.
+
+*name>comp*  ( nt –– w xt )  w xt is the compilation token for the word nt.
+
+*name>string*  ( nt –– addr count )  addr count is the name of the word represented by nt.
+
 ## Header structures
 
 If there's anything computing has demonstrated, it's the persistence of data structures. Data is like rocks. Code is like sand. It's desirable to define a minimal amount of rock. For the benefit of embedded systems, bloat is optional.
 
 The header structure would start with the counted name string. The MSB of the count byte would contain the *creator* flag. Empty bytes between the end of the string and the next CODE-ALIGNED address would be padded with 0. The rest of the header would contain, depending on *creator*:
 
-- 0: *{compile, execute, parm, nameString, ...}* 
-- 1: *{compile, execute, parm, nameString, compile_sem, execute_sem, ...}* 
+- 0: *{execute, compile, w, nameString, ...}* 
+- 1: *{execute, compile, w, nameString, compile_sem, execute_sem, ...}* 
 
 Note that for Forths running on a VM, an xt could be distinguished between Forth and VM functions using the xt's sign bit.
 
-*parm* is a cell that could be the code execution address of a word, a token value for a VM, a literal, or a pointer to a data structure. Extra cells in the header are implementation dependent. They could be links into a cross reference structure, source code information, for example.
+*w* is a cell that could be the code execution address of a word, a token value for a VM, a literal, or a pointer to a data structure. Extra cells in the header are implementation dependent. They could be links into a cross reference structure, source code information, for example.
 
 *nameString* is variable length. All fields afterwards are implementation dependent and take a little (not much) arithmetic to get to from the nt.
 
@@ -41,7 +53,7 @@ Smudge would be a minor concession to ANS Forth. Still nice to have to hide bad 
 
 ## Input Stream
 
-The QUIT loop operates on an input stream such as a keyboard buffer (the TIB) or a file. The most common usage of TIB at the application level is to do simple parsing of the input stream. A double VARIABLE called (SOURCE) should be used as the text input buffer. The first cell is the length remeining to be processed and the second cell is the address of the first byte. My code sometimes uses `>IN @` and `>IN !` to parse the input stream twice, so `>IN` could be defined as `(SOURCE) @`. The remainder of the buffer could be `: /SOURCE ( -- c-addr u )  (SOURCE) 2@ /STRING ;`. The idea is to evaluate blocks and files as whole buffers. Elimination of TIB simplifies `(` and other multi-line operations such as `[IF]`. The main difference is that WORD and PARSE don't necessarily recognize line breaks. That's good, you shouldn't depend on them to. `(SOURCE)` should have a third cell, line count, to let parsing words bump it when they see a newline.
+The QUIT loop operates on an input stream such as a keyboard buffer (the TIB) or a file. The most common usage of TIB at the application level is to do simple parsing of the input stream. A double VARIABLE called (SOURCE) should be used as the text input buffer. The first cell is the length remeining to be processed and the second cell is the address of the first byte. My code sometimes uses `>IN @` and `>IN !` to parse the input stream twice, but `>IN` could be defined as `(SOURCE) @`. The remainder of the buffer could be `: /SOURCE ( -- c-addr u )  (SOURCE) 2@ /STRING ;`. The idea is to evaluate blocks and files as whole buffers. Elimination of TIB simplifies `(` and other multi-line operations such as `[IF]`. The main difference is that WORD and PARSE don't necessarily recognize line breaks. That's good, you shouldn't depend on them to. `(SOURCE)` should have a third cell, line count, to let parsing words bump it when they see a newline.
 
 
 
