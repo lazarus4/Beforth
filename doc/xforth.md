@@ -16,15 +16,15 @@ Pile space is important to have on Forths that are hosted on a language other th
 When QUIT finds a word, the word's execution semantics or compile semantics should be executed depending on the value of STATE. 
 This would make STATE an offset into the word's header structure in Name space. `FIND-NAME` would return a "name token", or nt, to point to the header structure. To compile or execute the word, `STATE @ + @ EXECUTE` could handle the nt, given the right header structure. 
 
-Definitions would simultaneously compile to Code space and Pile space. Pile space could fill in a graph and apply an analytical compiler, or it could just compile a call/jump to code. It could make the decision to compile native code or a call at compile time. The basic idea is that Pile space is essentially free. Host systems are built to handle the fattest bloatware you can imagine. The overhead of compiling semantics to Pile space even if they aren't used is negligible.
+Definitions would simultaneously compile to Code space and Pile space. Pile space could fill in a graph and apply an analytical compiler, or it could just compile a call/jump to code. It could make the decision to compile native code or a call at compile time. The basic idea is that Pile space is essentially free. Host systems are built to handle some really fat bloatware, so the overhead of compiling semantics to Pile space even if they aren't used is negligible.
 
 The compiler will string compilation semantics together. For example, `: 2DUP OVER OVER ;` might cause 2DUP to compile two OVER opcodes rather than a call to 2DUP. The classical way of cross compiling worked out by MPE ltd. and FORTH inc. (for the EuroPay project) would be to compile 2DUP into the TARGET and COMPILE wordspaces. The 2DUP definition could be copied to the COMPILER scope to improve its compilation semantics. When COMPILING, the compiling version of 2DUP is found in the search order before the executable version. That works great when you're not using custom wordlists. However, to avoid the wordlist restrictions of dual headers, the dual-definition method (with Code and Pile spaces) is used. Everything you need is accessible from Name space.
 
-Words that create something in a wordlist could have the defaults in their namespace. That makes four cells, pointers to functions, in the header of a word: *compile, execute, compile_sem, execute_sem*. When that word creates something, *{compile_sem, execute_sem}* gets copied to the *{compile, execute}* fields. If the word creates nothing (the usual case), the *{compile_sem, execute_sem}* fields are nonexistent and the *created* flag is 0. `IMMEDIATE` would copy the last defined word's *execute* field to its *compile* field rather than setting a bit in the header and letting `FIND` return the bit.
+`IMMEDIATE` would copy the last defined word's *execute* field to its *compile* field rather than setting a bit in the header and letting `FIND` return the bit.
 
 ## QUIT words
 
-*find-name*  ( c-addr u –– nt | 0 ) From gForth, find the name c-addr u in the current search order. Return its nt, if found, otherwise 0.
+*find-name*  ( c-addr u –– nt | 0 ) From gForth: Find the name c-addr u in the current search order. Return its nt, if found, otherwise 0.
 
 For a QUIT loop built on top of a Forth with implementation-dependent header structure, I suggest using the following words:
 
@@ -38,10 +38,9 @@ For a QUIT loop built on top of a Forth with implementation-dependent header str
 
 If there's anything computing has demonstrated, it's the persistence of data structures. Data is like rocks. Code is like sand. It's desirable to define a minimal amount of rock. For the benefit of embedded systems, bloat is optional.
 
-The header structure would start with the counted name string. The MSB of the count byte would contain the *creator* flag. Empty bytes between the end of the string and the next CODE-ALIGNED address would be padded with 0. The rest of the header would contain, depending on *creator*:
+The header structure would start with the counted name string. The MSB of the count byte would contain the *smudge* flag. Empty bytes between the end of the string and the next CODE-ALIGNED address would be padded with 0. The rest of the header would contain:
 
-- 0: *{execute, compile, w, nameString, ...}* 
-- 1: *{execute, compile, w, nameString, compile_sem, execute_sem, ...}* 
+- *{execute, compile, w, nameString, ...}* 
 
 Note that for Forths running on a VM, an xt could be distinguished between Forth and VM functions using the xt's sign bit.
 
@@ -53,7 +52,7 @@ Note that for Forths running on a VM, an xt could be distinguished between Forth
 
 A Smudge bit could added to support strict ANS Forth compliance. Chuck Moore omitted it in some Forths. Smudge is used to force a word referenced in a word to use its previous definition rather than compiling a recursive call. Redefinitions aren't necessarily an error. They just mean you don't need that name anymore. You're terminating its scope. Terminating its scope and using it one last time, as in ANS, is a nice trick. It also hides definitions that didn't compile. 
 
-Smudge would be a minor concession to ANS Forth. Still nice for hiding bad definitions. So, let's place Smudge in bit 6 of the name count.
+Smudge is a good concession to ANS Forth. Also nice for hiding bad definitions. 
 
 ## Input Stream
 
