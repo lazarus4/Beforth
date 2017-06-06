@@ -14,19 +14,23 @@ In a cross compiler environment, Name and Pile spaces would be kept on the host 
 Pile space is important to have on Forths that are hosted on a language other than Forth. Pile space holds executable code, usually for a VM. That's different than Code space, which is a ROM image for an alien CPU. No, not that alien.
 
 When QUIT finds a word, the word's execution semantics or compile semantics should be executed depending on the value of STATE. 
-This would make STATE an offset into the word's header structure in Name space. `FIND-NAME` would return a "name token", or nt, to point to the header structure. To compile or execute the word, `STATE @ + @ EXECUTE` could handle the nt, given the right header structure. 
+`FIND-NAME` would return a "name token", or nt, to point to the header structure. To compile or execute the word, `STATE @ + @ EXECUTE` could handle the nt, given the right header structure. 
 
 Definitions would simultaneously compile to Code space and Pile space. Pile space could fill in a graph and apply an analytical compiler, or it could just compile a call/jump to code. It could make the decision to compile native code or a call at compile time. The basic idea is that Pile space is essentially free. Host systems are built to handle some really fat bloatware, so the overhead of compiling semantics to Pile space even if they aren't used is negligible.
 
 The compiler will string compilation semantics together. For example, `: 2DUP OVER OVER ;` might cause 2DUP to compile two OVER opcodes rather than a call to 2DUP. The classical way of cross compiling worked out by MPE ltd. and FORTH inc. (for the EuroPay project) would be to compile 2DUP into the TARGET and COMPILE wordspaces. The 2DUP definition could be copied to the COMPILER scope to improve its compilation semantics. When COMPILING, the compiling version of 2DUP is found in the search order before the executable version. That works great when you're not using custom wordlists. However, to avoid the wordlist restrictions of dual headers, the dual-definition method (with Code and Pile spaces) is used. Everything you need is accessible from Name space.
 
-`IMMEDIATE` would copy the last defined word's *execute* field to its *compile* field rather than setting a bit in the header and letting `FIND` return the bit.
+`IMMEDIATE` could copy the last defined word's *execute* field to its *compile* field rather than setting a bit in the header and letting `FIND` return the bit. Unfortunately, this messes with POSTPONE, which would need those compile semantics. So it appears the classic IMMEDIATE bit should be in the header. *find-name* returns a *not-immediate* flag that can be ANDed with STATE to form an index into the proposed header structure, to select the xt to execute.
 
-## QUIT words
+Numeric recognizers are always a funny topic. A consensus can never be reached on formats to support, yet the Forth number recognition is not extensible in a standard way. The only thing guaranteed is a single/double relic from 16-bit days. The recognizer *is-number?* should be a deferred word with an indeterminate stack result: ( c-addr u –– ? 0 | -13 ). -13 is the THROW code for unrecognized number.
 
-*find-name*  ( c-addr u –– nt | 0 ) From gForth: Find the name c-addr u in the current search order. Return its nt, if found, otherwise 0.
+## QUIT primitives
+
+*find-name*  ( c-addr u –– nt nimm | 0 0 ) gForth-ish: Find the name c-addr u in the current search order. Return its nt, if found, otherwise 0. *nimm* is 0 if the immediate flag is set, -1 otherwise.
 
 For a QUIT loop built on top of a Forth with implementation-dependent header structure, I suggest using the following words:
+
+*name>flags*  ( nt –– c-addr )  The address of name's *immediate* flag, right justified. `NOOP` in proposed header structure.
 
 *name>exec*  ( nt –– addr )  The address of name's execution/immediate semantics. `NOOP` in proposed header structure.
 
@@ -38,7 +42,7 @@ For a QUIT loop built on top of a Forth with implementation-dependent header str
 
 If there's anything computing has demonstrated, it's the persistence of data structures. Data is like rocks. Code is like sand. It's desirable to define a minimal amount of rock. For the benefit of embedded systems, bloat is optional.
 
-The header structure would start with the counted name string. The MSB of the count byte would contain the *smudge* flag. Empty bytes between the end of the string and the next CODE-ALIGNED address would be padded with 0. The rest of the header would contain:
+The header structure would start with the counted name string. The MSB of the count byte would contain the *smudge* flag and bit 6 would contain the *immediate* flag. Empty bytes between the end of the string and the next CODE-ALIGNED address would be padded with 0. The rest of the header would contain:
 
 - *{execute, compile, w, nameString, ...}* 
 
