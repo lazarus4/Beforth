@@ -2,7 +2,7 @@
 
 By *Brad Eckert*, `hwfwguy/at\gmail.com`
 
-The traditional QUIT loop in Forth uses FIND as part of an outer interpreter. FIND returns a single *xt*, an execution token that can be used for compilation but not in a straightforward way. There have been a number of means used to provide separate compile and execution semantics. The STATE variable has been one of these. The outer loop uses STATE to decide whether to compile or interpret. Interpreting is easy: the xt usually points to the execution address. Compilation requires some tricks. Some Forths use dual wordlists. That complicates the use of the search order, which limits extensibility and ties you to Forth as a language rather than a meta-language. Moving up a level of abstraction to the *nt*, or name token, enables more elaborate compilation by QUIT. The main enabler of this is a new memory space, Pile (compiler) space. So, the Forth model has four different memory spaces:  
+The traditional INTERPRET loop in Forth uses FIND as part of an outer interpreter. FIND returns a single *xt*, an execution token that can be used for compilation but not in a straightforward way. There have been a number of means used to provide separate compile and execution semantics. The STATE variable has been one of these. The outer loop uses STATE to decide whether to compile or interpret. Interpreting is easy: the xt usually points to the execution address. Compilation requires some tricks. Some Forths use dual wordlists. That complicates the use of the search order, which limits extensibility and ties you to Forth as a language rather than a meta-language. Moving up a level of abstraction to the *nt*, or name token, enables more elaborate compilation by INTERPRET. The main enabler of this is a new memory space, Pile (compiler) space. So, the Forth model has four different memory spaces:  
 
 - Name space, where the header structure is built.
 - Code space, where executable code is compiled to.
@@ -13,8 +13,24 @@ In a cross compiler environment, Name and Pile spaces would be kept on the host 
 
 Pile space is important to have on Forths that are hosted on a language other than Forth. Pile space holds executable code, usually for a VM. That's different than Code space, which is a ROM image for an alien CPU. No, not that alien.
 
-When QUIT finds a word, the word's execution semantics or compile semantics should be executed depending on the value of STATE. 
-`FIND-NAME` would return a "name token", or nt, to point to the header structure. To compile or execute the word, `STATE @ AND + @ EXECUTE` could handle the nt, given the right header structure. 
+When INTERPRET finds a word, the word's execution semantics or compile semantics should be executed depending on the value of STATE. 
+`FIND-NAME` would return a "name token", or nt, to point to the header structure. To compile or execute the word, `STATE @ AND + @ EXECUTE` could handle the nt, given the right header structure. A definition for INTERPRET, which interprets a line of text in (SOURCE) could be defined as:
+
+```
+: INTERPRET ( -- )
+   BEGIN
+      PARSE-WORD  DUP WHILE 
+      2DUP FIND-NAME  ( a u  {xt nimm}/{0 0} )
+      OVER IF              \ word found
+         STATE @ AND + @ EXECUTE  2DROP
+      ELSE 2DROP
+         IS-NUMBER? THROW  \ no stack change after this
+      THEN  >IN @ 0=
+   UNTIL 
+;
+```
+
+As you can see, addresses are not counted strings. This isn't 1980. The reason counted strings were bad in INTERPRET is that the parser would have to put the string in a temporary buffer to create the counted string. The (a u) pair lets the string stay in-place.
 
 Definitions would simultaneously compile to Code space and Pile space. Pile space could fill in a graph and apply an analytical compiler, or it could just compile a call/jump to code. It could make the decision to compile native code or a call at compile time. The basic idea is that Pile space is essentially free. Host systems are built to handle some really fat bloatware, so the overhead of compiling semantics to Pile space even if they aren't used is negligible.
 
@@ -24,11 +40,11 @@ The compiler will string compilation semantics together. For example, `: 2DUP OV
 
 Numeric recognizers are always a funny topic. A consensus can never be reached on formats to support, yet the Forth number recognition is not extensible in a standard way. The only thing guaranteed is a single/double relic from 16-bit days. The recognizer *is-number?* should be a deferred word with an indeterminate stack result: ( c-addr u –– ? 0 | -13 ). -13 is the THROW code for unrecognized number.
 
-## QUIT primitives
+## INTERPRET primitives
 
 *find-name*  ( c-addr u –– nt nimm | 0 0 ) gForth-ish: Find the name c-addr u in the current search order. Return its nt, if found, otherwise 0. *nimm* is 0 if the immediate flag is set, -1 otherwise.
 
-For a QUIT loop built on top of a Forth with implementation-dependent header structure, I suggest using the following words:
+For a INTERPRET loop built on top of a Forth with implementation-dependent header structure, I suggest using the following words:
 
 *name>flags*  ( nt –– c-addr )  The address of name's *immediate* flag. `3 CELLS +` in proposed header structure.
 
@@ -60,8 +76,19 @@ Smudge is a good concession to ANS Forth. Also nice for hiding bad definitions.
 
 ## Input Stream
 
-The QUIT loop operates on an input stream such as a keyboard buffer (the TIB) or a file. The TIB is still central to file loading in order to handle a line at a time. It would be a little silly to buffer the whole file before evaluating it. TIB and >IN could still be virtual, components of a 2VARIABLE `(SOURCE)`. To nest into a new source, `(SOURCE)` could be pushed onto the stack. There tends to be a little more information to store during file loading, such as file ID and line number. Such fancy stuff is outside the scope of QUIT.
+The INTERPRET (or QUIT) loop operates on an input stream such as a keyboard buffer (the TIB) or a file. The TIB is still central to file loading in order to handle a line at a time. It would be a little silly to buffer the whole file before evaluating it. TIB and >IN could still be virtual, components of a 2VARIABLE `(SOURCE)`. To nest into a new source, `(SOURCE)` could be pushed onto the stack. There tends to be a little more information to store during file loading, such as file ID and line number. Such fancy stuff is outside the scope of QUIT.
 
+## Defining words
+
+How about a napkin sketch of some defining words?
+
+VARIABLE FOO would compile default xts for FOO. Let's call them FOO_E and FOO_C. The w field is a data address. FOO_E pushes w onto the stack. FOO_C compiles w as a literal. Hmm, easy. In a fancier compiler, FOO_C could push w into a virtual stack in a graph structure. Code would be generated at the next control flow switch. Still easy.
+
+```
+: FOO  CREATE , DOES> @ MYFUNC ;
+123 FOO BAR
+```
+CREATE creates a header for BAR when FOO executes. BAR has code in Code space. This code pushes a literal w (the address of BAR data) onto the stack and then returns. BAR_E executes the BAR code. BAR_C executes `CREATE , DOES>` compile semantics to compile code that creates a header, compiles a cell (you had better be in the right memory space), and compiles a jump. It should be okay as compile semantics go.
 
 
 
