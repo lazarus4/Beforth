@@ -7,9 +7,9 @@ The traditional QUIT loop in Forth uses FIND as part of an outer interpreter. FI
 - Name space, where the header structure is built.
 - Code space, where executable code is compiled to.
 - Data space where you put variables and perhaps data structures. Read-only data structures are sometimes kept in code space, but that's a language feature.
-- To this ANS94 list we add Pile space, where optional compile semantics of a word are stored. 
+- To this ANS94 list we add Pile space, where compile semantics of a word are stored. 
 
-In a cross compiler environment, Name and Pile spaces would be kept on the host and possibly interleaved. Pile space contains executable code, but only code that's executable on the host CPU. Pile space, like header space, is considered read-write. Code and data spaces would be ported to a remote CPU for execution. Cross compilers would still use namespace scoping, but be not quite so be dependent on it. For example, the TARGET version of ':' would have different default semantics than the HOST version. Since default semantics are patchable, they can start out dumb and have optimizations added later. A smart language can build itself.
+In a cross compiler environment, Name and Pile spaces would be kept on the host and possibly interleaved. Pile space contains executable code, but only code that's executable on the host CPU. Pile space, like header space, is considered read-write. Code and data spaces would be ported to a remote CPU for execution. Cross compilers would still use namespace scoping, but be not quite so be dependent on it. For example, words in TARGET compile to only one wordlist instead of two. Since default semantics (of `:`, for example) are patchable, they can start out dumb and have optimizations added later. A smart language can build itself.
 
 Pile space is important to have on Forths that are hosted on a language other than Forth. Pile space holds executable code, usually for a VM. That's different than Code space, which is a ROM image for an alien CPU. No, not that alien.
 
