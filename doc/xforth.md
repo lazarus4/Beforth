@@ -11,6 +11,8 @@ The traditional QUIT loop in Forth uses FIND as part of an outer interpreter. FI
 
 In a cross compiler environment, Name and Pile spaces would be kept on the host and possibly interleaved. Pile space contains executable code, but only code that's executable on the host CPU. Pile space, like header space, is considered read-write. Code and data spaces would be ported to a remote CPU for execution. Cross compilers would still use namespace scoping, but be not quite so be dependent on it. For example, the TARGET version of ':' would have different default semantics than the HOST version. Since default semantics are patchable, they can start out dumb and have optimizations added later. A smart language can build itself.
 
+Pile space is important to have on Forths that are hosted on a language other than Forth. Pile space holds executable code, usually for a VM. That's different than Code space, which is a ROM image for an alien CPU. No, not that alien.
+
 When QUIT finds a word, the word's execution semantics or compile semantics should be executed depending on the value of STATE. 
 This would make STATE an offset into the word's header structure in Name space. `FIND-NAME` would return a "name token", or nt, to point to the header structure. To compile or execute the word, `STATE @ + @ EXECUTE` could handle the nt, given the right header structure. 
 
