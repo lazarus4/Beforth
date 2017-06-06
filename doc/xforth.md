@@ -51,7 +51,7 @@ Note that for Forths running on a VM, an xt could be distinguished between Forth
 
 A Smudge bit could added to support strict ANS Forth compliance. Chuck Moore omitted it in some Forths. Smudge is used to force a word referenced in a word to use its previous definition rather than compiling a recursive call. Redefinitions aren't necessarily an error. They just mean you don't need that name anymore. You're terminating its scope. Terminating its scope and using it one last time, as in ANS, is a nice trick. It also hides definitions that didn't compile. 
 
-Smudge would be a minor concession to ANS Forth. Still nice to have to hide bad definitions. So, let's place Smudge in bit 6 of the name count.
+Smudge would be a minor concession to ANS Forth. Still nice for hiding bad definitions. So, let's place Smudge in bit 6 of the name count.
 
 ## Input Stream
 
