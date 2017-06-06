@@ -30,7 +30,7 @@ Numeric recognizers are always a funny topic. A consensus can never be reached o
 
 For a QUIT loop built on top of a Forth with implementation-dependent header structure, I suggest using the following words:
 
-*name>flags*  ( nt –– c-addr )  The address of name's *immediate* flag, right justified. `NOOP` in proposed header structure.
+*name>flags*  ( nt –– c-addr )  The address of name's *immediate* flag. `3 CELLS +` in proposed header structure.
 
 *name>exec*  ( nt –– addr )  The address of name's execution/immediate semantics. `NOOP` in proposed header structure.
 
