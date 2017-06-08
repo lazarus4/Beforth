@@ -20,7 +20,7 @@ When INTERPRET finds a word, the word's execution semantics or compile semantics
 : INTERPRET ( -- )
    BEGIN
       PARSE-WORD  DUP WHILE 
-      2DUP FIND-NAME  ( a u  {xt nimm}/{0 0} )
+      2DUP FIND-NAME  ( a u  {nt nimm}/{0 0} )
       OVER IF              \ word found
          STATE @ AND + @ EXECUTE  2DROP
       ELSE 2DROP
@@ -30,7 +30,7 @@ When INTERPRET finds a word, the word's execution semantics or compile semantics
 ;
 ```
 
-As you can see, addresses are not counted strings. This isn't 1980. The reason counted strings were bad in INTERPRET is that the parser would have to put the string in a temporary buffer to create the counted string. The (a u) pair lets the string stay in-place.
+As you can see, addresses are not counted strings. This isn't 1980. The reason counted strings were bad in INTERPRET is that the parser would have to put the string in a temporary buffer to create the counted string. The (a u) pair lets the string be evaluated in place.
 
 Definitions would simultaneously compile to Code space and Pile space. Pile space could fill in a graph and apply an analytical compiler, or it could just compile a call/jump to code. It could make the decision to compile native code or a call at compile time. The basic idea is that Pile space is essentially free. Host systems are built to handle some really fat bloatware, so the overhead of compiling semantics to Pile space even if they aren't used is negligible.
 
@@ -53,6 +53,23 @@ For a INTERPRET loop built on top of a Forth with implementation-dependent heade
 *name>cmp*  ( nt –– addr )  The address of name's compilation semantics (2-cell xt w ). `CELL+` in proposed header structure.
 
 *name>string*  ( nt –– addr count )  addr count is the name of the word represented by nt. `2 CELLS + COUNT 63 AND` in proposed header structure.
+
+So, decoupling INTERPRET from Name space implementation (a good idea), it becomes:
+
+```
+: INTERPRET ( -- )
+   BEGIN
+      PARSE-WORD  DUP WHILE 
+      2DUP FIND-NAME  ( a u  {nt nimm}/{0 0} )
+      OVER IF                 \ word found
+         STATE @ AND  NIP NIP 
+         IF name>cmp ELSE name>exec THEN  @ EXECUTE  
+      ELSE 2DROP
+         IS-NUMBER? THROW     \ no stack change after this
+      THEN  >IN @ 0=
+   UNTIL 
+;
+```
 
 ## Header structures
 
