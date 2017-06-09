@@ -18,7 +18,8 @@ Experienced programmers have to develop new habits. Not only should you keep fun
 A Forth implementation should have a pretty face and be heavily instrumented. After some shopping around, I found a good platform for a Forth: SciTE. Its most important features are:
 1. Small memory footprint. That indicates better attention to detail. 2.3MB, single Windows .EXE.
 2. Open source, totally free (thanks, Neil!).
-3. Re-buildable with free (at least "free beer") tools.
+3. Re-buildable and debuggable with free (at least "free beer") tools.
+4. Multi-platform: Windows, Linux and Mac.
 ### Option 1
 SciTE is a C++ open source text editor. It has a built-in console that can be re-purposed to Forth. It already has a Lua extension whose implementation can be used as a guide for hooking in the Forth implementation. SciTE's extension abstraction layer might be up to the job, or if not then SciTE can be tweaked. SciTE has a long list of supported languages. I might strip those out.
 
