@@ -26,7 +26,7 @@ The source file ID is saved in a word's header structure so that it can be viewe
 
 ## Low Level Debug
 
-The VM should have a breakpoint register that invokes a low level debugger window. This dialog box (not a Windows-dependent dialog) is separate from SciTE. The VM will have its own execution thread that spins until the breakpoint is hit. To run until "RET", 0 could be pushed onto the return stack and the VM would run until it pops the 0 as a return address.
+The VM should have a breakpoint register that invokes a low level debugger window. This dialog box (not a Windows-dependent dialog) is separate from SciTE. The VM will have its own execution thread that spins until the breakpoint is hit. To run until "RET", -1 could be pushed onto the return stack and the VM would run until it pops the negative return address.
 
 The editor pane and debugger status are updated after each step of the debugger.
 
