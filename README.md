@@ -14,14 +14,23 @@ Experienced programmers have to develop new habits. Not only should you keep fun
 1. Keep it simple. 
 2. Test as you go. This is the best way to debug the programmer, since programmers are notoriously buggy. 
 3. Crash early and crash often. Like B, but with the humility to actively look for flaws in your reasoning (by getting your hands dirty) instead of assuming you've already thought of the best approach and coded it with minimal bugs. 
-## Why Beforth?
-Be the Forth. Well okay, the Beforth name could also come from the originator's initials (Brad Eckert), but "Be the Forth" is so much more Zen. It's all about having fun. Forth is supposed to be fun. Programming is supposed to be fun. A Forth system should teach you what good Forth looks like and it should help you easily remember and explore aspects of the system so that your memory only has to be "sharp enough".
-
-A Forth implementation should have a pretty face and be heavily instrumented. After some shopping around, I found a good platform for a Forth: SciTE. SciTE is a C++ open source text editor. It has a built-in console that can be re-purposed to Forth. It already has a Lua extension whose implementation can be used as a guide for hooking in the Forth implementation. SciTE's extension abstraction layer might be up to the job, or if not then SciTE can be tweaked. SciTE has a long list of supported languages. I might strip those out.
+## Choosing a platform
+A Forth implementation should have a pretty face and be heavily instrumented. After some shopping around, I found a good platform for a Forth: SciTE. Its most important features are:
+1. Small memory footprint. That indicates better attention to detail. 2.3MB, single Windows .EXE.
+2. Open source, totally free (thanks, Neil!).
+3. Re-buildable with free (at least "free beer") tools.
+### Option 1
+SciTE is a C++ open source text editor. It has a built-in console that can be re-purposed to Forth. It already has a Lua extension whose implementation can be used as a guide for hooking in the Forth implementation. SciTE's extension abstraction layer might be up to the job, or if not then SciTE can be tweaked. SciTE has a long list of supported languages. I might strip those out.
 
 SciTE as a platform is an editor enhancement. The editor has instant access to compiled features such as the cross reference structure, source code hints, statistics, stack pictures, etc. Where do you really do Forth? It's a combination of the command line and the editor. Design top down, implement bottom up. Both sides are open at the same time. The console drills down. The editor builds up. In this case, the editor also keeps things visible so you don't have to keep so many of them in your head. 
 
-Where to put the extra "visible things" is still up in the air. Maybe mouse-over popups, maybe a separate pane or an extra status bar. 
+Where to put the extra "visible things" is still up in the air. Maybe mouse-over (hover) popups, maybe a separate pane or an extra status bar. 
+
+### Option 2
+Visual Studio Code provides a nice extensible editor. It should be possible to have the Forth compile an extension along with your code. Reload that extension, and you have the "evolved editing" features that match your code. Not very real-time. Also, the debugger has a pre-set architecture. It doesn't provide for reverse stepping or bouncing-ball debugging. No, thanks.
+
+## Why Beforth?
+Be the Forth. Well okay, the Beforth name could also come from the originator's initials (Brad Eckert), but "Be the Forth" is so much more Zen. It's all about having fun. Forth is supposed to be fun. Programming is supposed to be fun. A Forth system should teach you what good Forth looks like and it should help you easily remember and explore aspects of the system so that your memory only has to be "sharp enough".
 
 Beforth is a public domain Forth under the Unlicense license. This allows the Forth sources to be freely distributed. The load sequence for Beforth is as follows:
 
