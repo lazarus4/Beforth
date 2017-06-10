@@ -23,4 +23,4 @@ The ACE programming editor is great for code. It can't be too bad since I'm usin
 ### Experiments:
 The Git repository easily downloaded to my PC. The sample editor scripts (html) opened in my browser just fine. I edited the sample to load Forth syntax hilighting.
 
-Will the Chrome browser let locally loaded JS play with local files? 
+The IE browser has no problem opening local files: launch ACE, read the file into a var, and load the var into ACE. 
