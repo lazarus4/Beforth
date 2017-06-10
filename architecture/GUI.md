@@ -1,6 +1,6 @@
 # GUI
 
-The GUI would be an extension of SciTE. Some possible panes are:
+The GUI would be NP++ with a Forth plugin. Some possible panes are:
 
 1. The console. It's the scrollable text output used by a command line interpreter.
 2. Keyboard history.
