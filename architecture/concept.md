@@ -1,7 +1,7 @@
 # Beforth – Features
 
 ## Preliminary Musings
-Now that SciTE is chosen as the platform, some features can be sketched out. The Forth will be implemented as two big blobs of memory and a bytecode VM. The VM executes out of code/data space. Header space is kept separate for caching reasons. To the underlying hardware, VM bytecodes are data. They are also very compact. A significant run of bytecodes can fit in a data cache line. The VM will hopefully all fit in the instruction cache, as it uses a tight little switch statement. 
+Now that C/C++ in a NP++ plugin is chosen as the platform, some features can be sketched out. The Forth will be implemented as three big blobs of memory and a bytecode VM. The VM executes out of code space. Header space is kept separate for caching reasons. To the underlying hardware, VM bytecodes are data. They are also very compact. A significant run of bytecodes can fit in a data cache line. The VM will hopefully all fit in the instruction cache, as it uses a tight little switch statement. 
 
 Beforth should be implemented as a minimal kernel in C, which loads the rest of the system from Forth source as needed. It will use a bytecode VM to execute compiled code. It should be possible to instrument the VM so as to allow single step debugging, undo-style backward stepping, breakpoints, etc. For speed, a subset of JS called asm.js should be used for the VM.
 
