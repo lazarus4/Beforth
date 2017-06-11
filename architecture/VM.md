@@ -9,16 +9,23 @@ The VM has the following system features:
 - Separate floating point stack. Floating point is optional.
 
 ## VM memory model
-Header space is used by the compiler, which is written in C to facilitate loading of Forth. Header space needs to be accessible by the VM so that it can take over compilation duties as the system grows. The use of header space by the VM is optional. In the simplest configuration, the VM doesn't touch this space.
+Header space is used by the compiler, which is written in JS to facilitate loading of Forth. Header space needs to be accessible by the VM so that it can take over compilation duties as the system grows. The use of header space by the VM is optional. In the simplest configuration, the VM doesn't touch this space.
 
+The VM is written in JavaScript using typed arrays.
+```
+var HM = new Int32Array(headMemSize); // Header space
+var CM = new Int16Array(codeMemSize); // Code space  
+var DM = new Int32Array(dataMemSize); // Data space
+var RM = new Int32Array(regsMemSize); // Registers for VM
+```
 Literals are signed, so we want addresses to have small absolute values. In hex, the address ranges could be:
 
-- `00000000` to `00FFFFFF`	Code and data space, start address is 0.
+- `00000000` to `00FFFFFF`	Code space, start address is 0.
 - `FF000000` to `FFFFFFFF`	Data space, start address is (-DM.length). Use a DM size that's a power of 2.
 - `FE000000` to `FE0000FF`	VM registers (PC, SP, RP, etc.)
 - `FD000000` to `FDFFFFFF`	Header space.
 
-The single stepper uses these addresses as tokens. The program counter (PC), for example, could be VMreg[0].
+The single stepper uses these addresses as tokens. The program counter (PC), for example, could be RM[0].
 
 Execution tokens, for example used by `EXECUTE ( xt -- )`, are either VM bytecodes or addresses in code space. EXECUTE treates negative numbers as VM bytecodes. For example, the EXECUTE instruction does a 1s complement negate (~xt) to get the bytecode to execute. An xt of -1 executes bytecode 0.
 
@@ -35,55 +42,53 @@ The first USER variable of the task is FOLLOWER. FOLLOWER is placed first becaus
 ## VM metal
 Stacks are kept in data memory. Stack pointers are registers. The top of the data stack is in a register, as with most classic Forths. Other registers are SP, RP and UP. 
 
-The VM uses a tight loop that fetches the next 8-bit instruction and executes it. Some ideas for execution::
+16-bit instructions strike a good balance between size and speed. The VM uses a tight loop that fetches the next 16-bit instruction from CM and executes it. The instruction encoding allows for compact calls and jumps. Taking a hardware-friendly view of the VM, the four MSBs of the instruction are decoded into four instruction groups:
 
-1. Use a switch statement to dispatch a command byte. Each case terminates in a “goto next”, where the goto destination is declared with “[lbl] next”.
-2. Use a function table whose index is the command byte. An execution table, in other words.
-3. Use a combination of these: the switch’s default goes to an execution table. 
+- 000s = opcode: k4/k20 + op6 + def + ret = 4-bit/20-bit optional literal, 6-bit opcode, deferred and return bits [1]
+- 001s = opcode: k7/k23 + op5 = opcode with 7-bit/23-bit signed data [2]
+- 011s = literal: k12/k28 = 12-bit or 28-bit signed literal
+- 100s = jump: k12/k28 = signed PC displacement
+- 101s = call: k12/k28 = signed PC displacement
+- 110s = ajump: k12/k28 = absolute PC 
+- 111s = acall: k12/k28 = absolute PC 
 
-For the sake of simplicity, speed and flexibility in opcode assignment, option 1 is used. Tokens that take immediate data (a variable length byte sequence following the opcode) are grouped together so that the disassembler easily knows whether or not to display immediate data. Extended opcodes are in the F0-FF range, as per Openboot tradition. These take the lower eight bits of the opcode from the next byte in the byte stream. They're typically used for words you might not find in an embedded system, such as file access and floating point words. These 256-byte pages can be decoded by separate switch statements.
+The *s* bit indicates instruction size. If '1', 16-bit immediate data follows. This covers most literals. Extremely large literals can be formed by compiling 28-bit literal and an additional *xlit* opcode (0x2XXX group) to shift in the remaining 4 bits.
 
-Rather than have an explosion in the number of opcodes needed to handle small, medium and large literals, a variable length literal is used by most literal-using opcodes. The first byte (byte[0]) of a literal consists of a 3-bit type and a 5-bit k value. The types are decoded as follows:
+\[1]: The opcode should use k in a hardware-friendly way. If the return bit is set, a RET is executed after the opcode. The deferred bit selects the opcode set. There are two 64-code sets. Set[0] is a group of 64 JavaScript functions. Set[1] is a group of 64 deferred functions that have a default JS function that executes when the Forth semantics are undefined.
 
-0. N = k (signed) 
-1. N = k (unsigned)
-2. N = k<<8 + byte[1] (signed)
-3. N = k<<8 + byte[1] (unsigned)
-4. N = k<<16 + byte[1]<<8 + byte[2] (signed)
-5. N = k<<16 + byte[1]<<8 + byte[2] (unsigned)
-6. N = k<<24 + byte[1]<<16 + byte[2]<<8 + byte[3] (signed)
-7. N = byte[1]<<24 + byte[2]<<16 + byte[3]<<8 + byte[4]
+\[2]: There are 16 common opcodes that take immediate data.
+- xlit  ( n -- n\*16 + k )  Shift TOS left 4 places and add 4-bit unsigned k.
+- +lit  ( n -- n + k )  Add signed k to TOS. {1+, 1-, CELL+, CHAR+}
+- &lit  ( n -- n & k )  Bitwise-and signed k to TOS.
+- |lit  ( n -- n & k )  Bitwise-or signed k to TOS.
+- ^lit  ( n -- n & k )  Bitwise-xor signed k to TOS. {INVERT}
+- uplit  ( -- a )  Get user variable address UP + k. {UP@}
+- rplit  ( -- a )  Get local variable address RP + k. {RP@}
+- split  ( -- a )  Get pick address SP + k. {SP@}
+- @lit  ( -- mem[k] )  Fetch cell from memory address k.
+- c@lit  ( -- mem[k] )  Fetch byte from memory address k.
+- w@lit  ( -- mem[k] )  Fetch 16-bit from memory address k.
+- !lit  ( n -- )  Store cell to memory address k.
+- c!lit  ( n -- )  Store byte to memory address k.
+- w!lit  ( n -- )  Store 16-bit to memory address k.
 
-This scheme should decode nicely with a switch statement and some byte-oriented moves. The compiler chooses the lowest type ID that fits the number. The sizes and ranges of the types are:
+Some ideas for execution of opcodes:
 
-0. 1 byte, -16 to +15
-1. 1 byte, 0 to +31
-2. 2 bytes, -4096 to +4095
-3. 2 bytes, 0 to 8191
-4. 3 bytes, -1048576 to +1048575
-5. 3 bytes, 0 to +2097151
-6. 4 bytes, -268435456 to +268435455
-7. 5 bytes, -2147483648 to +2147483647
+1. Use a switch statement. Each case terminates in a “goto next”, where the goto destination is declared with “[lbl] next”.
+2. Use a function table. 
 
-DEFERed words shared by C and Forth should call a C function that has default C and Forth usages. An array of deferFn[] elements would be a handy place to keep such DEFERed words. Each deferFn would have a C function and a Forth address. An address of 0 causes the C function to be used. Otherwise, a call is made to the Forth address.
+Since the opcode functions should be accessible through the JS debug terminal, option 2 is the way to go.
+
+DEFERed words shared by C and Forth should call a C function that has default C and Forth usages. An array of deferFn[] elements would be a handy place to keep such DEFERed words. Each deferFn would have a C function and a Forth address. An address of 0 causes the C function to be used. Otherwise, a call is made to the Forth address. 
+
+- `REDIRECT ( xt fn# -- )` Redirect deferred fn# (0 to 63) to use Forth word instead.
+- `UNDIRECT ( fn# -- )` Restore JS functionality.
 
 Implementing double precision arithmetic such as UM/MOD and UM\* will require some finesse, since JavaScript doesn't do 64-bit integers. First, the operands are checked to see if they fit a 32-bit operation. If not, things get done the "slow" way. Multiply is done using four 16\*16 operations. Divide is done using either shift-and-subtract or several 32/16 divides.
 
-Rather than taking the classic approach of `: * UM* DROP ;`, the VM provides a single \* primitive and expects things like UM\* and M\* to be defined in Forth. Note that /\* is a primitive. C will use the FPU to execute it. UM\* isn't so tough: Use \* four times to multiply 16-bit numbers and merge the results. This means that scaling tricks like `scaleVal M* NIP` will be slower, not faster, than `scaleVal 65536 */`. Note that in the latter case, 65536 is a power of 2 so the optimizer (or you) could optimize out the division if needed.
+Rather than taking the classic approach of `: * UM* DROP ;`, the VM provides a single \* primitive and expects things like UM\* and M\* to be defined in Forth. Note that /\* is a primitive. JS will use the FPU to execute it. UM\* isn't so tough: Use \* four times to multiply 16-bit numbers and merge the results. This means that scaling tricks like `scaleVal M* NIP` will be slower, not faster, than `scaleVal 65536 */`. A more useful word for scaling would be `.*`, fractional multiply, the equivalent of `: .* ( n1 -- n2 ) M* D2* D2* NIP ;`. The scale value would be between -2 and +2.
 
-UM/MOD is not a VM primitive. Numeric conversion uses a bignum-like primitive that uses an 8-bit divisor and 64-bit dividend.
-
-## Opcode map
-The opcodes range from 00 to FF. To group them by their immediate data usage:
-- 00 to n-1 = No immediate data used.
-- n to m-1 = Smart immediate literal is used.
-- m to FF = Unsigned 8-bit literal is used.
-
-Let n and m be defined by `FirstSmartImmediate = 0x80` and `FirstByteImmediate = 0xE0` in the C. The optimal values depend on how the opcode map fills out as instructions are added to the VM.
-
-The N range includes CALL, JUMP, 0JUMP, +LIT, ANDLIT, etc.
-
-The M range includes VMFUNC, PAGE0, PAGE1, etc. PAGEn is a range of extended opcodes. VMFUNC is a shared C/Forth DEFERed word. There can be up to 256 of these. Their default action is C, but they can be directed use to Forth by the opcode `REDIRECT ( xt fn# -- )`. The C behavior can be restored with `UNDIRECT ( fn# -- )`.
+UM/MOD is not a VM primitive. Numeric conversion could use a bignum-like primitive that uses an 8-bit divisor and 64-bit dividend.
 
 ## Usage
 The basic Forth system is designed as a kernel that can run stand-alone in an embedded system. In other words, the code image compiled by the C can conceivably be copied over to a static ROM image and run in an embedded system. The VM is simple enough to port to the embedded system, so it doesn't need any C. Essentially, Beforth is an embedded system simulator with the cross compiler written in C.
