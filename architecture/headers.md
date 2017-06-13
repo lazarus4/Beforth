@@ -27,15 +27,14 @@ A NAMESTRUCT only needs a name, but it contains additional instrumentation infor
 ```
 Cell Name______  Value Meaning__________________________________________________
 0    INTERPRET   0     xt of Forth INTERPRET semantics. 0 if none.                   
-1    INTERPRET_N 0     xt of Native INTERPRET semantics.                   
-2    COMPILE     0     xt of Forth COMPILE semantics. 0 if none.                      
-3    COMPILE_N   0     xt of Native COMPILE semantics.                      
-4    NAME        ?     Packed counted string up to 256 bytes long.              
-n+5  FEATURES    ?     Various compiler flags and features.                     
-n+6  USED        0     Pointer to "This word is referenced by" list.            
-n+7  USES        0     Pointer to "This word references" list.                  
-n+8  LOCATE      0     Pointer to LOCATE structure, 0 if not available.         
-n+9  DATA        0     One or more cells of data used by the semantics.         
+1    COMPILE     0     xt of Forth COMPILE semantics. 0 if none.
+2    W           ?     value by the xt(s).
+3    NAME        ?     Packed counted string up to 256 bytes long.              
+n+4  FEATURES    ?     Various compiler flags and features.                     
+n+5  USED        0     Pointer to "This word is referenced by" list.            
+n+6  USES        0     Pointer to "This word references" list.                  
+n+7  LOCATE      0     Pointer to LOCATE structure, 0 if not available.         
+n+8  DATA        0     One or more cells of data used by the semantics.         
 ```
 The FEATURES cell is packed as follows: {smudge.1, immediate.1, type.1, color.3, address}. 
 The smudge bit is set during compilation of a word to make it non-findable until ‘;’ successfully executes. Dictionary search will also look at the smudge bit. The address is evaluated by a 1-bit type: {token, vmCode}. Color is used for color highlighting.
