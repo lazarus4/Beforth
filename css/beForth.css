@@ -1,0 +1,22 @@
+/*!
+ * StyleSheet for beForth, Unlicense License
+ */
+ 
+#editor {position: absolute; top:0;left:0;right:0;bottom:0;}
+
+.nav-pills > li > a
+{
+    /* adjust padding for height*/
+    padding-top: 2px; 
+    padding-bottom: 2px;
+}
+.nav-pills > li.active > a:focus, .nav-pills > li.active > a
+{
+    margin-top: 1px;
+}
+.nav-pills > li {
+    margin-bottom: 0px; 
+}
+.nav-pills > li.active {
+    margin-bottom: -1px;    
+}
