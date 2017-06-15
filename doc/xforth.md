@@ -13,6 +13,8 @@ The traditional INTERPRET loop in Forth uses FIND as part of an outer interprete
 - `NAME>NAME`  ( nt -- c-addr u )  Name of the word.
 
 ```
+VARIABLE NT
+
 : INTERPRET ( -- )  // DXT interpreter loop
    BEGIN  PARSE-NAME  DUP WHILE
       FIND-NAME OVER IF NUMBER ELSE
