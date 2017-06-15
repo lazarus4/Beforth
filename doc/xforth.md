@@ -5,22 +5,26 @@ By *Brad Eckert*, `hwfwguy/at\gmail.com`
 The traditional INTERPRET loop in Forth uses FIND as part of an outer interpreter. FIND returns a single *xt*, an execution token that can be used for compilation but not in a straightforward way. One solution is to have a dual-xt system. The header (in name space) contains an xt for execution and an xt for compilation. A new dialect of Forth, called DXT (for dual XT) is proposed. This can be a derivative of the 2012x Forth standard. Applications written in ANS can run on DXT with a compatibility layer written in DXT. Applications written in DXT may run on an ANS system with a non-standard compatibility layer. The DXT version of INTERPRET uses a version of FIND that takes a string token and finds its name token, *nt*, a namespace reference that easily converts to the appropriate xt.
 
 - `PARSE-NAME`  ( "{spaces}name[space]" -- c-addr u )  *2012:* Skip leading space delimiters. Parse name delimited by a space.
-- `NAME>COMP`  ( nt -- w xt )  *gforth:* xt is the compilation token for the word nt.
+- `NAME>COMP`  ( nt -- xt )  xt is the compilation token for the word nt.
 - `NAME>INT`  ( nt -- xt )  *gforth:* xt represents the interpretation semantics of the word nt. If nt has no interpretation semantics (i.e. is compile-only), xt is the execution token for ticking-compile-only-error, which performs -2048 throw.
 - `FIND-NAME`  ( c-addr u -- 0 nt | c-addr u )  Finds the word from its string token. Performs -16 throw if zero-length string.
 - `NUMBER`  ( c-addr u -- ? )  Converts string to a number, performs -13 throw (undefined word) if it can't.
+- `NAME>W`  ( nt -- w )  w is a general purpose parameter in the header.
+- `NAME>NAME`  ( nt -- c-addr u )  Name of the word.
 
 ```
-: INTERPRET ( -- )
+: INTERPRET ( -- )  // DXT interpreter loop
    BEGIN  PARSE-NAME  DUP WHILE
       FIND-NAME OVER IF NUMBER ELSE
-        NIP STATE @ IF
-        NAME>COMP ELSE
-        NAME>EXEC THEN  EXECUTE
+         NIP  DUP NT !  STATE @ IF         
+         NAME>COMP ELSE
+         NAME>EXEC THEN  EXECUTE
       THEN
    REPEAT  2DROP
 ;
 ```
+IMMEDIATE works by copying the last word's xtE to its xtC.
+
 
 ## Header structures
 
