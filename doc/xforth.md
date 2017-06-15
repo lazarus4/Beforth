@@ -2,72 +2,23 @@
 
 By *Brad Eckert*, `hwfwguy/at\gmail.com`
 
-The traditional INTERPRET loop in Forth uses FIND as part of an outer interpreter. FIND returns a single *xt*, an execution token that can be used for compilation but not in a straightforward way. There have been a number of means used to provide separate compile and execution semantics. The STATE variable has been one of these. The outer loop uses STATE to decide whether to compile or interpret. Interpreting is easy: the xt usually points to the execution address. Compilation requires some tricks. Some Forths use dual wordlists. That complicates the use of the search order, which limits extensibility and ties you to Forth as a language rather than a meta-language. Moving up a level of abstraction to the *nt*, or name token, enables more elaborate compilation by INTERPRET. The main enabler of this is a new memory space, Pile (compiler) space. So, the Forth model has four different memory spaces:  
+The traditional INTERPRET loop in Forth uses FIND as part of an outer interpreter. FIND returns a single *xt*, an execution token that can be used for compilation but not in a straightforward way. One solution is to have a dual-xt system. The header (in name space) contains an xt for execution and an xt for compilation. A new dialect of Forth, called DXT (for dual XT) is proposed. This can be a derivative of the 2012x Forth standard. Applications written in ANS can run on DXT with a compatibility layer written in DXT. Applications written in DXT may run on an ANS system with a non-standard compatibility layer. The DXT version of INTERPRET uses a version of FIND that takes a string token and finds its name token, *nt*, a namespace reference that easily converts to the appropriate xt.
 
-- Name space, where the header structure is built.
-- Code space, where executable code is compiled to.
-- Data space where you put variables and perhaps data structures. Read-only data structures are sometimes kept in code space, but that's a language feature.
-- To this ANS94 list we add Pile space, where compile semantics of a word are stored. 
-
-In a cross compiler environment, Name and Pile spaces would be kept on the host and possibly interleaved. Pile space contains executable code, but only code that's executable on the host CPU. Pile space, like header space, is considered read-write. Code and data spaces would be ported to a remote CPU for execution. Cross compilers would still use namespace scoping, but be not quite so be dependent on it. For example, words in TARGET compile to only one wordlist instead of two. Since default semantics (of `:`, for example) are patchable, they can start out dumb and have optimizations added later. A smart language can build itself.
-
-Pile space is important to have on Forths that are hosted on a language other than Forth. Pile space holds executable code, usually for a VM. That's different than Code space, which is a ROM image for an alien CPU. No, not that alien.
-
-When INTERPRET finds a word, the word's execution semantics or compile semantics should be executed depending on the value of STATE. 
-`FIND-NAME` would return a "name token", or nt, to point to the header structure. To compile or execute the word, `STATE @ AND + @ EXECUTE` could handle the nt, given the right header structure. A definition for INTERPRET, which interprets a line of text in (SOURCE) could be defined as:
+- `PARSE-NAME`  ( "{spaces}name[space]" -- c-addr u )  *2012:* Skip leading space delimiters. Parse name delimited by a space.
+- `NAME>COMP`  ( nt -- w xt )  *gforth:* xt is the compilation token for the word nt.
+- `NAME>INT`  ( nt -- xt )  *gforth:* xt represents the interpretation semantics of the word nt. If nt has no interpretation semantics (i.e. is compile-only), xt is the execution token for ticking-compile-only-error, which performs -2048 throw.
+- `FIND-NAME`  ( c-addr u -- 0 nt | c-addr u )  Finds the word from its string token. Performs -16 throw if zero-length string.
+- `NUMBER`  ( c-addr u -- ? )  Converts string to a number, performs -13 throw (undefined word) if it can't.
 
 ```
 : INTERPRET ( -- )
-   BEGIN
-      PARSE-WORD  DUP WHILE 
-      2DUP FIND-NAME  ( a u  {nt nimm}/{0 0} )
-      OVER IF              \ word found
-         STATE @ AND + @ EXECUTE  2DROP
-      ELSE 2DROP
-         IS-NUMBER? THROW  \ no stack change after this
-      THEN  >IN @ 0=
-   UNTIL 
-;
-```
-
-As you can see, addresses are not counted strings. This isn't 1980. The reason counted strings were bad in INTERPRET is that the parser would have to put the string in a temporary buffer to create the counted string. The (a u) pair lets the string be evaluated in place.
-
-Definitions would simultaneously compile to Code space and Pile space. Pile space could fill in a graph and apply an analytical compiler, or it could just compile a call/jump to code. It could make the decision to compile native code or a call at compile time. The basic idea is that Pile space is essentially free. Host systems are built to handle some really fat bloatware, so the overhead of compiling semantics to Pile space even if they aren't used is negligible.
-
-The compiler will string compilation semantics together. For example, `: 2DUP OVER OVER ;` might cause 2DUP to compile two OVER opcodes rather than a call to 2DUP. The classical way of cross compiling worked out by MPE ltd. and FORTH inc. (for the EuroPay project) would be to compile 2DUP into the TARGET and COMPILE wordspaces. The 2DUP definition could be copied to the COMPILER scope to improve its compilation semantics. When COMPILING, the compiling version of 2DUP is found in the search order before the executable version. That works great when you're not using custom wordlists. However, to avoid the wordlist restrictions of dual headers, the dual-definition method (with Code and Pile spaces) is used. Everything you need is accessible from Name space.
-
-`IMMEDIATE` could in theory copy the last defined word's *execute* field to its *compile* field rather than setting a bit in the header and letting `FIND` return the bit. Unfortunately, this messes with POSTPONE, which will need those compile semantics. So, it appears the classic IMMEDIATE bit should be in the header. *find-name* returns a *not-immediate* flag that can be ANDed with STATE to form an index into the proposed header structure, to select the xt to execute.
-
-Numeric recognizers are always a funny topic. A consensus can never be reached on formats to support, yet the Forth number recognition is not extensible in a standard way. The only thing guaranteed is a single/double relic from 16-bit days. The recognizer *is-number?* should be a deferred word with an indeterminate stack result: ( c-addr u –– ? 0 | -13 ). -13 is the THROW code for unrecognized number.
-
-## INTERPRET primitives
-
-*find-name*  ( c-addr u –– nt nimm | 0 0 ) gForth-ish: Find the name c-addr u in the current search order. Return its nt, if found, otherwise 0. *nimm* is 0 if the immediate flag is set, -1 otherwise.
-
-For a INTERPRET loop built on top of a Forth with implementation-dependent header structure, I suggest using the following words:
-
-*name>flags*  ( nt –– c-addr )  The address of name's *immediate* flag. `3 CELLS +` in proposed header structure.
-
-*name>exec*  ( nt –– addr )  The address of name's execution/immediate semantics. `NOOP` in proposed header structure.
-
-*name>cmp*  ( nt –– addr )  The address of name's compilation semantics (2-cell xt w ). `CELL+` in proposed header structure.
-
-*name>string*  ( nt –– addr count )  addr count is the name of the word represented by nt. `2 CELLS + COUNT 63 AND` in proposed header structure.
-
-So, decoupling INTERPRET from Name space implementation (a good idea), it becomes:
-
-```
-: INTERPRET ( -- )
-   BEGIN
-      PARSE-WORD  DUP WHILE 
-      2DUP FIND-NAME  ( a u  {nt nimm}/{0 0} )
-      OVER IF                 \ word found
-         STATE @ AND  NIP NIP 
-         IF name>cmp ELSE name>exec THEN  @ EXECUTE  
-      ELSE 2DROP
-         IS-NUMBER? THROW     \ no stack change after this
-      THEN  >IN @ 0=
-   UNTIL 
+   BEGIN  PARSE-NAME  DUP WHILE
+      FIND-NAME OVER IF NUMBER ELSE
+        NIP STATE @ IF
+        NAME>COMP ELSE
+        NAME>EXEC THEN  EXECUTE
+      THEN
+   REPEAT  2DROP
 ;
 ```
 
