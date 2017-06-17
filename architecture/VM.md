@@ -41,7 +41,7 @@ Stacks are kept in data memory. Stack pointers are registers. The top of the dat
 
 16-bit instructions strike a good balance between size and speed. The VM uses a tight loop that fetches the next 16-bit instruction from CM and executes it. The instruction encoding allows for compact calls and jumps. Taking a hardware-friendly view of the VM, the four MSBs of the instruction are decoded into four instruction groups:
 
-- 000s = opcode: k4/k20 + push + ret + op6 = 4-bit/20-bit optional literal, 6-bit opcode, push and return bits [1]
+- 000s = opcode: k4/k20 + pop + push + ret + op = 4-bit/20-bit optional literal, opcode, push and return bits [1]
 - 001s = iopcode: k8/k24 + op4 = opcode with 8-bit/24-bit signed data [2]
 - 011s = literal: k12/k28 = 12-bit or 28-bit signed literal
 - 100s = jump: k12/k28 = signed PC displacement
@@ -55,12 +55,14 @@ The *s* bit indicates instruction size. If '1', 16-bit immediate data follows. T
 
 If the *push* bit is set, TOS is pushed onto the data stack (mem[--SP]=TOS) before the instruction is executed. If the *ret* bit is also set, the return will be executed first, then TOS will be pushed, then the instruction will execute. In a hardware implementation, the instruction could write to TOS concurrently. In the case of memory operations, it may be blocked until the TOS is written. 
 
+If the *pop* bit is set, TOS will be popped from the data stack after the instruction.
+
 Opcode coding is:
-- 00pppp = Two-input, one-output operation. TOS = func(TOS, mem[SP]). func codes p are: {+, &, |, ^, nop}. Post-increment SP by k[1:0], RP by k[3:2]. Add saves a carry bit cy.
-- 01pppp = One-output operation. TOS = func(TOS). func codes p are: {2\*, 2/, u2/, ror, rol, cy@, a@}. 
-- 1000tt = Fetch from mem[A[k[7:4]]]. Postincrement A by signed k[11:8]. tt = size: {byte, half, cell}
-- 1001tt = Store to mem[A[k[7:4]]]. Postincrement A by signed k[11:8]. tt = size: {byte, half, cell}
-- 101rrr = TOS to register: {A[k], up, sp, rp]
+- 00pppp = Two-input, one-output operation. TOS = func(TOS, mem[SP]). func codes p are: {+, &, |, ^, nop}. 
+- 01pppp = One-output operation. TOS = func(TOS). func codes p are: {2\*, 2/, u2/, ror, rol, cy@, a[k]@}. 
+- 100ptt = Fetch from mem[A]. Postincrement A if p='1'. tt = size: {byte, half, cell}
+- 101ptt = Store to mem[A]. Postincrement A if p='1'. tt = size: {byte, half, cell}
+- 110rrr = TOS to register: {A[k], up, sp, rp]
 
 \[2]: There are 16 iopcodes that take immediate data. They are:
 - `0` +lit  ( n -- n + k )  Add signed k to TOS. {1+, 1-, CELL+, CHAR+}
