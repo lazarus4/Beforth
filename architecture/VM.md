@@ -41,7 +41,7 @@ Stacks are kept in data memory. Stack pointers are registers. The top of the dat
 
 16-bit instructions strike a good balance between size and speed. The VM uses a tight loop that fetches the next 16-bit instruction from CM and executes it. The instruction encoding allows for compact calls and jumps. Taking a hardware-friendly view of the VM, the four MSBs of the instruction are decoded into four instruction groups:
 
-- 000s = opcode: k4/k20 + op6 + push + ret = 4-bit/20-bit optional literal, 6-bit opcode, push and return bits [1]
+- 000s = opcode: k4/k20 + push + ret + op6 = 4-bit/20-bit optional literal, 6-bit opcode, push and return bits [1]
 - 001s = iopcode: k8/k24 + op4 = opcode with 8-bit/24-bit signed data [2]
 - 011s = literal: k12/k28 = 12-bit or 28-bit signed literal
 - 100s = jump: k12/k28 = signed PC displacement
@@ -53,44 +53,25 @@ The *s* bit indicates instruction size. If '1', 16-bit immediate data follows. T
 
 \[1]: The opcode should use k in a hardware-friendly way. If the *ret* bit is set, a return is executed with the opcode. With a hardware implementation, the return would be initiated first (PC popped) and then the instruction executed while the branch is in progress. The VM should do it this way. 
 
-If the *push* bit is set, TOS is pushed onto the data stack (mem[--SP]=TOS) before the instruction is executed. If the *ret* bit is also set, the return will be executed first, then TOS will be pushed, then the instruction will execute. All of this would take three clocks in an RTL version, matching the amount of time needed for the instruction pipeline to refill.
+If the *push* bit is set, TOS is pushed onto the data stack (mem[--SP]=TOS) before the instruction is executed. If the *ret* bit is also set, the return will be executed first, then TOS will be pushed, then the instruction will execute. In a hardware implementation, the instruction could write to TOS concurrently. In the case of memory operations, it may be blocked until the TOS is written. 
 
-In an assembly version of the interpreter, the 64-element opcode jump table would consist of addresses that would likely be 32-bit. Or, the table could be 4-byte branch instructions. Either way, the op6 field is already aligned to a 4-byte boundary.
-
-Markdown | Less | Pretty
---- | --- | ---
-*Still* | `renders` | **nicely**
-1 | 2 | 3
-
-The first 16 opcodes post-increment SP by k[1:0], RP by k[3:2]. They are:
-- `00` noop  {NOOP, NIP} 
-- `01` t+  Add TOS with mem[SP].
-- `02` t&  Bitwise-and TOS with mem[SP]. 
-- `03` t|  Bitwise-or TOS with mem[SP]. 
-- `04` t^  Bitwise-xor TOS with mem[SP]. 
-- `05` 
-- `06` 
-- `07` ttuck  Store TOS to mem[SP]. {DROP = predec, ttuck}
-- `08` a@  TOS = A[k[7:4]] register. Postincrement A by signed k[11:8].
-- `09` @a  Fetch TOS cell from memory address A[k[7:4]]. Postincrement A by signed k[11:8].
-- `0A` c@a  Fetch TOS byte from memory address A[k[7:4]]. Postincrement A by signed k[11:8].
-- `0B` w@a  Fetch TOS 16-bit from memory address A[k[7:4]]. Postincrement A by signed k[11:8].
-- `0C` a!  Store TOS to A[k[7:4]] register. Postincrement A by signed k[11:8].
-- `0D` !a  Store TOS cell to memory address A[k[7:4]]. Postincrement A by signed k[11:8].
-- `0E` c!a  Store TOS byte to memory address A[k[7:4]]. Postincrement A by signed k[11:8].
-- `0F` w!a  Store TOS 16-bit to memory address A[k[7:4]]. Postincrement A by signed k[11:8].
-
+Opcode coding is:
+- 00pppp = Two-input, one-output operation. TOS = func(TOS, mem[SP]). func codes p are: {+, &, |, ^, nop}. Post-increment SP by k[1:0], RP by k[3:2]. Add saves a carry bit cy.
+- 01pppp = One-output operation. TOS = func(TOS). func codes p are: {2\*, 2/, u2/, ror, rol, cy@, a@}. 
+- 1000tt = Fetch from mem[A[k[7:4]]]. Postincrement A by signed k[11:8]. tt = size: {byte, half, cell}
+- 1001tt = Store to mem[A[k[7:4]]]. Postincrement A by signed k[11:8]. tt = size: {byte, half, cell}
+- 101rrr = TOS to register: {A[k], up, sp, rp]
 
 \[2]: There are 16 iopcodes that take immediate data. They are:
-- `0` syscall  ( ? -- ? )  Call Fn[k[23:5] to the underlying system using k[2:0] input and k[4:3] output parameters. 
-- `1` +lit  ( n -- n + k )  Add signed k to TOS. {1+, 1-, CELL+, CHAR+}
-- `2` &lit  ( n -- n & k )  Bitwise-and signed k to TOS.
-- `3` |lit  ( n -- n & k )  Bitwise-or signed k to TOS.
-- `4` ^lit  ( n -- n & k )  Bitwise-xor signed k to TOS. {INVERT}
-- `5` xlit  ( n -- n\*16 + k )  Shift TOS left 4 places and add 4-bit unsigned k.
-- `6` uplit  ( -- a )  Get user variable address UP + k. {UP@, USER variables}
-- `7` rplit  ( -- a )  Get local variable address RP + k. {RP@, local variables}
-- `8` split  ( -- a )  Get pick address SP + k. {SP@, PICK}
+- `0` +lit  ( n -- n + k )  Add signed k to TOS. {1+, 1-, CELL+, CHAR+}
+- `1` &lit  ( n -- n & k )  Bitwise-and signed k to TOS.
+- `2` |lit  ( n -- n & k )  Bitwise-or signed k to TOS.
+- `3` ^lit  ( n -- n & k )  Bitwise-xor signed k to TOS. {INVERT}
+- `4` xlit  ( n -- n\*16 + k )  Shift TOS left 4 places and add 4-bit unsigned k.
+- `5` uplit  ( -- a )  Get user variable address UP + k. {UP@, USER variables}
+- `6` rplit  ( -- a )  Get local variable address RP + k. {RP@, local variables}
+- `7` split  ( -- a )  Get pick address SP + k. {SP@, PICK}
+- `8` syscall  ( ? -- ? )  Call Fn[k[23:5] to the underlying system using k[2:0] input and k[4:3] output parameters. 
 - `9` @lit  ( -- mem[k] )  Fetch cell from memory address k.
 - `A` c@lit  ( -- mem[k] )  Fetch byte from memory address k.
 - `B` w@lit  ( -- mem[k] )  Fetch 16-bit from memory address k.
