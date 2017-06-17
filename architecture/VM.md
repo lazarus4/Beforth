@@ -9,11 +9,9 @@ The VM has the following system features:
 - Separate floating point stack. Floating point is optional.
 
 ## VM memory model
-Header space is used by the compiler, which is written in JS to facilitate loading of Forth. Header space needs to be accessible by the VM so that it can take over compilation duties as the system grows. The use of header space by the VM is optional. In the simplest configuration, the VM doesn't touch this space.
-
-The VM is written in JavaScript using typed arrays.
+The VM is written in JavaScript using typed arrays. The main part of the VM is a large switch statement that's portable to C. 
+The VM is meant to be simple enough to port to anything, including VHDL/Verilog.
 ```
-var HM = new Int32Array(headMemSize); // Header space
 var CM = new Int16Array(codeMemSize); // Code space  
 var DM = new Int32Array(dataMemSize); // Data space
 var RM = new Int32Array(regsMemSize); // Registers for VM
@@ -23,11 +21,10 @@ Literals are signed, so we want addresses to have small absolute values. In hex,
 - `00000000` to `00FFFFFF`	Code space, start address is 0.
 - `FF000000` to `FFFFFFFF`	Data space, start address is (-DM.length). Use a DM size that's a power of 2.
 - `FE000000` to `FE0000FF`	VM registers (PC, SP, RP, etc.)
-- `FD000000` to `FDFFFFFF`	Header space.
 
 The single stepper uses these addresses as tokens. The program counter (PC), for example, could be RM[0].
 
-Execution tokens, for example used by `EXECUTE ( xt -- )`, are either VM bytecodes or addresses in code space. EXECUTE treates negative numbers as VM bytecodes. For example, the EXECUTE instruction does a 1s complement negate (~xt) to get the bytecode to execute. An xt of -1 executes bytecode 0.
+Execution tokens, for example used by `EXECUTE ( xt -- )`, are either VM opcodes or addresses in code space. EXECUTE treates negative numbers as VM opcodes. For example, the EXECUTE instruction does a 1s complement negate (~xt) to get the opcode to execute. An xt of -1 executes opcode 0.
 
 The way memory is used is central to the VM. The UP register points to a Task Control Block (TCB), a small buffer in RAM that's used by a round-robin cooperative multitasker.
 ![Stacks Illustration](https://github.com/lazarus4/Beforth/raw/master/architecture/stacks_01.png)
@@ -44,8 +41,8 @@ Stacks are kept in data memory. Stack pointers are registers. The top of the dat
 
 16-bit instructions strike a good balance between size and speed. The VM uses a tight loop that fetches the next 16-bit instruction from CM and executes it. The instruction encoding allows for compact calls and jumps. Taking a hardware-friendly view of the VM, the four MSBs of the instruction are decoded into four instruction groups:
 
-- 000s = opcode: k4/k20 + op6 + def + ret = 4-bit/20-bit optional literal, 6-bit opcode, deferred and return bits [1]
-- 001s = opcode: k7/k23 + op5 = opcode with 7-bit/23-bit signed data [2]
+- 000s = opcode: k4/k20 + op7 + ret = 4-bit/20-bit optional literal, 7-bit opcode, and return bit [1]
+- 001s = iopcode: k8/k24 + op4 = opcode with 8-bit/24-bit signed data [2]
 - 011s = literal: k12/k28 = 12-bit or 28-bit signed literal
 - 100s = jump: k12/k28 = signed PC displacement
 - 101s = call: k12/k28 = signed PC displacement
@@ -54,35 +51,44 @@ Stacks are kept in data memory. Stack pointers are registers. The top of the dat
 
 The *s* bit indicates instruction size. If '1', 16-bit immediate data follows. This covers most literals. Extremely large literals can be formed by compiling 28-bit literal and an additional *xlit* opcode (0x2XXX group) to shift in the remaining 4 bits.
 
-\[1]: The opcode should use k in a hardware-friendly way. If the return bit is set, a RET is executed after the opcode. The deferred bit selects the opcode set. There are two 64-code sets. Set[0] is a group of 64 JavaScript functions. Set[1] is a group of 64 deferred functions that have a default JS function that executes when the Forth semantics are undefined.
+\[1]: The opcode should use k in a hardware-friendly way. If the return bit is set, a RET is executed after the opcode. Some opcodes are:
+- `0` noop  ( -- )  Post-increment SP by k[1:0], RP by k[3:2]. {NOOP, NIP} 
+- `1` +lit  ( n -- n + k )  Add signed k to TOS. {1+, 1-, CELL+, CHAR+}
+- `2` &lit  ( n -- n & k )  Bitwise-and signed k to TOS.
+- `3` |lit  ( n -- n & k )  Bitwise-or signed k to TOS.
+- `4` ^lit  ( n -- n & k )  Bitwise-xor signed k to TOS. {INVERT}
+- `5` xlit  ( n -- n\*16 + k )  Shift TOS left 4 places and add 4-bit unsigned k.
+- `6` 
+- `7` 
+- `8` a@  ( -- a )  Get A[k[7:4]] register. Postincrement A by signed k[11:8].
+- `9` @  ( -- n )  Fetch cell from memory address A[k[7:4]]. Postincrement A by signed k[11:8].
+- `A` c@  ( -- c )  Fetch byte from memory address A[k[7:4]]. Postincrement A by signed k[11:8].
+- `B` w@  ( -- n )  Fetch 16-bit from memory address A[k[7:4]]. Postincrement A by signed k[11:8].
+- `C` a!  ( addr -- )  Store to A[k[7:4]] register. Postincrement A by signed k[11:8].
+- `D` !a  ( n -- )  Store cell to memory address A[k[7:4]]. Postincrement A by signed k[11:8].
+- `E` c!a  ( c -- )  Store byte to memory address A[k[7:4]]. Postincrement A by signed k[11:8].
+- `F` w!a  ( n -- )  Store 16-bit to memory address A[k[7:4]]. Postincrement A by signed k[11:8].
 
-\[2]: There are 16 common opcodes that take immediate data.
-- xlit  ( n -- n\*16 + k )  Shift TOS left 4 places and add 4-bit unsigned k.
-- +lit  ( n -- n + k )  Add signed k to TOS. {1+, 1-, CELL+, CHAR+}
-- &lit  ( n -- n & k )  Bitwise-and signed k to TOS.
-- |lit  ( n -- n & k )  Bitwise-or signed k to TOS.
-- ^lit  ( n -- n & k )  Bitwise-xor signed k to TOS. {INVERT}
-- uplit  ( -- a )  Get user variable address UP + k. {UP@}
-- rplit  ( -- a )  Get local variable address RP + k. {RP@}
-- split  ( -- a )  Get pick address SP + k. {SP@}
-- @lit  ( -- mem[k] )  Fetch cell from memory address k.
-- c@lit  ( -- mem[k] )  Fetch byte from memory address k.
-- w@lit  ( -- mem[k] )  Fetch 16-bit from memory address k.
-- !lit  ( n -- )  Store cell to memory address k.
-- c!lit  ( n -- )  Store byte to memory address k.
-- w!lit  ( n -- )  Store 16-bit to memory address k.
 
-Some ideas for execution of opcodes:
+\[2]: There are 16 iopcodes that take immediate data. They are:
+- `0` syscall  ( ? -- ? )  Call Fn[k[23:5] to the underlying system using k[2:0] input and k[4:3] output parameters. 
+- `1` +lit  ( n -- n + k )  Add signed k to TOS. {1+, 1-, CELL+, CHAR+}
+- `2` &lit  ( n -- n & k )  Bitwise-and signed k to TOS.
+- `3` |lit  ( n -- n & k )  Bitwise-or signed k to TOS.
+- `4` ^lit  ( n -- n & k )  Bitwise-xor signed k to TOS. {INVERT}
+- `5` xlit  ( n -- n\*16 + k )  Shift TOS left 4 places and add 4-bit unsigned k.
+- `6` uplit  ( -- a )  Get user variable address UP + k. {UP@, USER variables}
+- `7` rplit  ( -- a )  Get local variable address RP + k. {RP@, local variables}
+- `8` split  ( -- a )  Get pick address SP + k. {SP@, PICK}
+- `9` @lit  ( -- mem[k] )  Fetch cell from memory address k.
+- `A` c@lit  ( -- mem[k] )  Fetch byte from memory address k.
+- `B` w@lit  ( -- mem[k] )  Fetch 16-bit from memory address k.
+- `C` 0bran  ( flag -- )  Branch if flag=0 using displacement k.
+- `D` !lit  ( n -- )  Store cell to memory address k.
+- `E` c!lit  ( n -- )  Store byte to memory address k.
+- `F` w!lit  ( n -- )  Store 16-bit to memory address k.
 
-1. Use a switch statement. Each case terminates in a “goto next”, where the goto destination is declared with “[lbl] next”.
-2. Use a function table. 
-
-Since the opcode functions should be accessible through the JS debug terminal, option 2 is the way to go.
-
-DEFERed words shared by C and Forth should call a C function that has default C and Forth usages. An array of deferFn[] elements would be a handy place to keep such DEFERed words. Each deferFn would have a C function and a Forth address. An address of 0 causes the C function to be used. Otherwise, a call is made to the Forth address. 
-
-- `REDIRECT ( xt fn# -- )` Redirect deferred fn# (0 to 63) to use Forth word instead.
-- `UNDIRECT ( fn# -- )` Restore JS functionality.
+Syscall functions are in a JS function array. All others are hard coded in the VM.
 
 Implementing double precision arithmetic such as UM/MOD and UM\* will require some finesse, since JavaScript doesn't do 64-bit integers. First, the operands are checked to see if they fit a 32-bit operation. If not, things get done the "slow" way. Multiply is done using four 16\*16 operations. Divide is done using either shift-and-subtract or several 32/16 divides.
 
