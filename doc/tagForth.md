@@ -30,6 +30,8 @@ tok | Store token text   | Orange
 
 There are multiple versions of HERE because, while separating the code and data spaces is not essential in some cases, it is a very good idea in others. For example, in embedded systems where the cost of SRAM (in terms of die area) is ten times that of Flash. Code space may be read-only at run time. UDATA and CDATA are required, so that's two instances of HERE. The default is CDATA. If you want to keep all your data in code space, that's your business.
 
-In the interest of scalability, to support libraries, the ANS Forth search order wordlist is adopted. The VM (widget that runs executable code) is responsible for providing the interface to the OS, the search order, whatever.
+In the interest of scalability, to support libraries, the ANS Forth search order wordlist is adopted. 
 
 The IDE should remember the name of the project file. It's this file that gets loaded upon reload. Everything is compiled from source instantly. In the beginning, colorForth knows nothing. It doesn't know what DUP means. You load all that in the form of macros. Granted, macros don't leverage analytical compilers. Stack computers solve that problem. A virtual stack computer is fine as an execution target.
+
+There may be a list of predefined words with dual-token semantics. Headers are assumed to be dual-xt. When you create a word, it has default "compile call to me" and "execute me" semantics.
