@@ -1,6 +1,6 @@
 # colorForth
 colorForth, as described by Chuck Moore, belongs to a class of Forths that use tag-delimited tokens as input. 
-The colorForth name is a good description for the language. It just needs a bigger tent. 
+The colorForth name is a good description of the language. It just needs a bigger tent. 
 It can be, and should be, a serious production language.
 
 A production language should be file oriented. This is because source code needs to be viewable/editable using readily available tools. All of computing uses files as the basic persistent storage abstraction. So, you load files, not blocks.
@@ -10,23 +10,11 @@ Tokenization is the basic premise behind the source code structure. Source code 
 ```
 <tag>Your Token Here</tag>
 ```
-If your source code has tags that aren't colorForth, the loader or tokenizer will skip them. So, you can document your code in HTML. The tags are defined in a CSS. You can change the tag attributes to what pleases you visually. The tag types, historically, are:
-
-*Color | Time |	Purpose*
-White	| Ignored | Comment (ignored by assembler)
-Red	| Compile	| Add name/address pair to dictionary.
-Yellow number	| Compile	| Immediately push number (assembly-time)
-Yellow word	| Compile	| Immediately call (i.e. assembly-time macro)
-Green number | Execute | Compile literal (pack @p and value)
-Green word | Execute | Compile call/jump (to defined red word)
-Blue | Display | Format word (editor display-time)
-Gray | Compile | Literal Instruction (packed by assembler)
-
-The encoding of the source code shall be UTF-8. This is a major entitlement, I think. Tokens are strings of Unicode with UTF-8 encoding. With that established, you can build a language. A token that leaves its address on the stack needs its own color. Orange. Orange you glad you have it?
+If your source code has tags that aren't colorForth, the loader or tokenizer will skip them. So, you can document your code in HTML. The tags are defined in a CSS. You can change the tag attributes to what pleases you visually. The encoding of the source code shall be UTF-8. This is a major entitlement, I think. Tokens are strings of Unicode with UTF-8 encoding. With that established, you can build a language. A token that leaves its address on the stack needs its own color. Orange: Immediately load the token text into a TIB and push its address. Orange you glad you have it?
 
 Keep in mind that tag attributes can have any 24-bit background or foreground color, any font, bold, italic or underline. These are within the scope of the CSS. You need to know how to include the link to the CSS sheet in your HTML document. Trivial. However, the tag names must be established. Short names that don't clash with standard tags. Here are the tags historically used by GreenArrays along with my proposed tag name:
 
-*Tag | Syntax Element    | Color*
+**Tag** | **Syntax Element** | **Color**
 -----|:------------------|:------
 fmt | Display Macro      | Blue
 asm | Compiler Feedback  | Grey
@@ -38,7 +26,25 @@ lit | Compile number     | Green
 com | Compile forth word | Green
 def | Define forth word  | Red
 int | Interp forth word  | Yellow
+tok | Store token text   | Orange
 
 There are multiple versions of HERE because, while separating the code and data spaces is not essential in some cases, it is a very good idea in others. For example, in embedded systems where the cost of SRAM (in terms of die area) is ten times that of Flash. Code space may be read-only at run time. UDATA and CDATA are required, so that's two instances of HERE. The default is CDATA. If you want to keep all your data in code space, that's your business.
 
+In the interest of scalability, to support libraries, the ANS Forth search order is adopted. That necessitates some pre-existing keywords, adopted from the ANS Forth Search wordlist:
 
+- 16.6.1.1180 DEFINITIONS
+- 16.6.1.1643 GET-CURRENT
+- 16.6.1.1647 GET-ORDER
+- 16.6.1.2192 SEARCH-WORDLIST
+- 16.6.1.2195 SET-CURRENT
+- 16.6.1.2197 SET-ORDER
+- 16.6.1.2460 WORDLIST
+- 16.6.2.0715 ALSO
+- 16.6.2.1590 FORTH
+- 16.6.2.1965 ONLY
+- 16.6.2.1985 ORDER
+- 16.6.2.2037 PREVIOUS
+
+## Conditional Compilation
+
+[IF] is a word that, when executed, causes the loader/tokenizer to ignore tokens until a [THEN] is seen. It's a library thing.
