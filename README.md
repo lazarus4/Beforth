@@ -1,9 +1,9 @@
 # Beforth
 ## Status: preliminary
-- Have an IDE window with terminal and editor panes.
+- Have an IDE window with multiple panes. Just switched to colorForth from ANS, so need to rework some IDE thoughts.
 - Memory model is set up for a VM and header structures.
 - Search order, find and add-header are working.
-- Don't yet have keyboard input or a VM.
+- Don't yet have a VM.
 ## Running beForth
 1. Download the archive and unzip it to a local folder on your computer. 
 2. Launsh beForth.html in a web browser.
@@ -12,6 +12,13 @@
 - Allow switching between Forth and JS input
 - Implement the interpreters
 - Implement the VM
+## Rationale
+Beforth is a colorForth. That means the source code consists of tag-delimited tokens. Not blank-delimited. The loader is crazy simple: Pull in tokens and handle them according to their tag, until the input is exhausted.
+
+The first thing a normal person will think upon seeing a colorForth is *What's the point?*. If you're going to write Forth applications, why not use ANS Forth? Well, there's a very good reason. It's to complete the circle, because Chuck loved Forth. Forth gave to us. This is how we give back. Forth is a great discipline but a lousy devotion. Chuck's devotion made him blind. That's true love. True love is a good enough reason to build applications in a tagged Forth. 
+
+What will follow is improved productivity, if done right. Chuck proved the concept.
+
 ## About Forth
 Forth, the computer language, was created for programming embedded and real-time applications. It was also used widely in the 80s and 90s to create desktop applications. Today, a small number of Forth experts still use it in embedded systems, with great results in terms of productivity and product quality. In today's era of code bloat, the "Keep It Simple" philosophy is more important than ever. Computer programming as an art form still matters. Forth holds a unique position in *KISS* space.
 
