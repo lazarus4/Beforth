@@ -12,6 +12,8 @@ Tokenization is the basic premise behind the source code structure. Source code 
 ```
 If your source code has tags that aren't colorForth, the loader or tokenizer will skip them. So, you can document your code in HTML. The tags are defined in a CSS. You can change the tag attributes to what pleases you visually. The encoding of the source code shall be UTF-8. This is a major entitlement, I think. Tokens are strings of Unicode with UTF-8 encoding. With that established, you can build a language. A token that leaves its address on the stack needs its own color. Orange: Immediately load the token text into a TIB and push its address and length. Orange you glad you have it?
 
+Numbers are also character strings, unlike the block version. So, the radix should be part of the notation. The C standard should be used for this. For example, 1000 and 0x3E8 mean the same thing.
+
 Keep in mind that tag attributes can have any 24-bit background or foreground color, any font, bold, italic or underline. These are within the scope of the CSS. You need to know how to include the link to the CSS sheet in your HTML document. Trivial. However, the tag names must be established. Short names that don't clash with standard tags. Here are the tags historically used by GreenArrays along with my proposed tag name:
 
 **Tag** | **Syntax Element** | **Color**
@@ -34,7 +36,7 @@ There should be a list of predefined words with dual-token semantics. Headers ar
 
 Should the default behaviors of *red* be changeable, to allow creation of defining words? I think yes. That means the host must be able to execute the xt, which is already one of the ground rules. Execute means execute, even if it takes an instruction set simulator.
  
-Magenta variables are a problem here because the HTML source is rather unwieldy. The token stream isn't necessarily addressable. Magenta variables would have to save the file name and file position of the variable. It could go out and touch the file. Also, HTML is just a notation. Source code could be put through a tokenizer to be compacted, although ZIP seems to compress HTML just fine.
+The magic of Magenta is that re-building the dictionary doesn't lose your work. Magenta variables are a problem here because the HTML source is rather unwieldy, although ZIP seems to compress HTML just fine. The token stream isn't necessarily addressable. Magenta variables would have to save the file name and file position of the variable. It could go out and touch the file. Or, all the files could be kept in a big memory buffer.
 
 Speaking of late binding, what about forward references? I think not a problem. Define the word as empty. Later on, resolve its code with a forward jump. That means having predefined words for this such as `IS` and `'`.
 
