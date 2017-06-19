@@ -34,9 +34,9 @@ There should be a list of predefined words with dual-token semantics. Headers ar
 
 Should the default behaviors of *red* be changeable, to allow creation of defining words? I think yes. That means the host must be able to execute the xt, which is already one of the ground rules. Execute means execute, even if it takes an instruction set simulator.
  
-Magenta variables are a problem here because the HTML source is rather unwieldy. The token stream isn't necessarily addressable. Magenta variables would have to save the file name and file position of the variable. It could go out and touch the file.
+Magenta variables are a problem here because the HTML source is rather unwieldy. The token stream isn't necessarily addressable. Magenta variables would have to save the file name and file position of the variable. It could go out and touch the file. Also, HTML is just a notation. Source code could be put through a tokenizer to be compacted, although ZIP seems to compress HTML just fine.
 
-Speaking of late binding, what about forward references? I think not a problem. Define the word as empty. Later on, resolve its code with a jump. That means having predefined words for this.
+Speaking of late binding, what about forward references? I think not a problem. Define the word as empty. Later on, resolve its code with a forward jump. That means having predefined words for this such as `IS` and `'`.
 
 There are multiple versions of HERE because, while separating the code and data spaces is not essential in some cases, it is a very good idea in others. For example, in embedded systems where the cost of SRAM (in terms of die area) is ten times that of Flash. Code space may be read-only at run time. UDATA and CDATA are required, so that's two instances of HERE. The default is CDATA. If you want to keep all your data in code space, that's your business.
 
