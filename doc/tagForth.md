@@ -18,7 +18,7 @@ Keep in mind that tag attributes can have any 24-bit background or foreground co
 
 **Tag** | **Syntax Element** | **Color**
 -----|:------------------|:------
-fmt | Display Macro      | Blue
+fmt | Display Macro      | <dl><span style="color: #0000ff">Blue</span></dl>
 asm | Compiler Feedback  | Grey
 var | Variable           | Magenta
 com | Comment            | White
@@ -56,11 +56,11 @@ Should the default behaviors of *red* be changeable, to allow creation of defini
 > : simple   push  swap 8 *  pop +  op, ;
 >    : adc,  4140 simple ;
 >    : and,  4000 simple ;
-
-Trade-offs were different with threaded code. But when compiling native
-code, fewer syntatical constructs seems better. It's nice to say that
-colorForth source has a 1-1 correspondance with object code. If several
-syntaxes generated the same code, it would be a many-1 correspondance.
+>
+> Trade-offs were different with threaded code. But when compiling native
+> code, fewer syntatical constructs seems better. It's nice to say that
+> colorForth source has a 1-1 correspondance with object code. If several
+> syntaxes generated the same code, it would be a many-1 correspondance.
  
 The magic of Magenta is that re-building the dictionary doesn't lose your work. Magenta variables are a problem here because the HTML source is rather unwieldy, although ZIP seems to compress HTML just fine. The token stream isn't necessarily addressable. Magenta variables would have to save the file name and file position of the variable. It could go out and touch the file. Or, all the files could be kept in a big memory buffer.
 
