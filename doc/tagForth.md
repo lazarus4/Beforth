@@ -20,7 +20,7 @@ Keep in mind that tag attributes can have any 24-bit background or foreground co
 -----|:------------------|:------
 fmt | Display Macro      | Blue
 asm | Compiler Feedback  | Grey
-var | Variable           | Magenta
+mag | Variable           | Magenta
 com | Comment            | White
 num | Interpreted Number | Yellow
 mac | Compile macro call | Cyan
@@ -29,6 +29,8 @@ com | Compile forth word | Green
 def | Define forth word  | Red
 int | Interp forth word  | Yellow
 tok | Store token text   | Orange
+
+The magic of Magenta is that re-building the dictionary doesn't lose your work. Magenta variables are a problem here because the variable is a string. The token stream isn't necessarily addressable. Magenta variables would have to save the file name and file position of the variable. It could go out and touch the file. Or, all the files could be kept in a big memory buffer. Either way, @ and ! can't be used on them. I suggest treating them like VALUEs, changeable by TO. I'm trying to not have words look ahead in the token stream. So, TO takes an address of a data structure, stashed in a system variable. `X !` = `[yellow] X [yellow] to` or `[green] X [green] to`.
 
 The IDE should remember the name of the project file. It's this file that gets loaded upon reload. Everything is compiled from source instantly. In the beginning, colorForth knows nothing. It doesn't know what DUP means. You load all that in the form of macros. Granted, macros don't leverage analytical compilers. Stack computers solve that problem. A virtual stack computer is fine as an execution target.
 
@@ -62,10 +64,6 @@ Should the default behaviors of *red* be changeable, to allow creation of defini
 > colorForth source has a 1-1 correspondance with object code. If several
 > syntaxes generated the same code, it would be a many-1 correspondance.
  
-The magic of Magenta is that re-building the dictionary doesn't lose your work. Magenta variables are a problem here because the HTML source is rather unwieldy, although ZIP seems to compress HTML just fine. The token stream isn't necessarily addressable. Magenta variables would have to save the file name and file position of the variable. It could go out and touch the file. Or, all the files could be kept in a big memory buffer.
-
-Speaking of late binding, what about forward references? I think not a problem. Define the word as empty. Later on, resolve its code with a forward jump. That means having predefined words for this such as `IS` and `'`.
-
 There are multiple versions of HERE because, while separating the code and data spaces is not essential in some cases, it is a very good idea in others. For example, in embedded systems where the cost of SRAM (in terms of die area) is ten times that of Flash. Code space may be read-only at run time. UDATA and CDATA are required, so that's two instances of HERE. The default is CDATA. If you want to keep all your data in code space, that's your business.
 
 In the interest of scalability, to support libraries, the ANS Forth search order wordlist is adopted. Search and basic code space management are basic predefined functionalities.
