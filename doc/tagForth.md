@@ -34,7 +34,33 @@ The IDE should remember the name of the project file. It's this file that gets l
 
 There should be a list of predefined words with dual-token semantics. Headers are assumed to be dual-xt. The loader executes one xt or the other depending on color. It allows things like EQU, which is like a CONSTANT without code. As Zen-like as starting out with an empty lexicon seems, there's no getting past the need for predefined wordlists as with ANS Forth. However, they can be tailored to the system to keep the word count to a minimum.
 
-Should the default behaviors of *red* be changeable, to allow creation of defining words? I think yes. That means the host must be able to execute the xt, which is already one of the ground rules. Execute means execute, even if it takes an instruction set simulator.
+Should the default behaviors of *red* be changeable, to allow creation of defining words? I think not. Chuck Moore had this to say:
+
+> Perhaps I should explain why colorForth doesn't have DOES>. (Of course, I
+> would spell  DOES>  as  does , just to simplify the syntax.)
+> 
+> It's actually the same reason it doesn't have CONSTANT. Generated code would
+> be the same. Including another syntax adds redundancy that I'm critical of
+> in other languages:
+>      10 constant ten
+>      : ten   10 ;
+> If you think about what code you might compile for  CONSTANT, you'll see
+> it's just:
+>      push number on stack
+>      return
+> 
+> : simple   constant does  @ push  swap 8 *  pop +  op, ;
+>    4140 simple adc,
+>    4000 simple and,
+> 
+> : simple   push  swap 8 *  pop +  op, ;
+>    : adc,  4140 simple ;
+>    : and,  4000 simple ;
+
+Trade-offs were different with threaded code. But when compiling native
+code, fewer syntatical constructs seems better. It's nice to say that
+colorForth source has a 1-1 correspondance with object code. If several
+syntaxes generated the same code, it would be a many-1 correspondance.
  
 The magic of Magenta is that re-building the dictionary doesn't lose your work. Magenta variables are a problem here because the HTML source is rather unwieldy, although ZIP seems to compress HTML just fine. The token stream isn't necessarily addressable. Magenta variables would have to save the file name and file position of the variable. It could go out and touch the file. Or, all the files could be kept in a big memory buffer.
 
