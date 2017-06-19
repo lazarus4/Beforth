@@ -18,7 +18,7 @@ Keep in mind that tag attributes can have any 24-bit background or foreground co
 
 **Tag** | **Syntax Element** | **Color**
 -----|:------------------|:------
-fmt | Display Macro      | <dl><span style="color: #0000ff">Blue</span></dl>
+fmt | Display Macro      | Blue
 asm | Compiler Feedback  | Grey
 var | Variable           | Magenta
 com | Comment            | White
