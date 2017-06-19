@@ -28,10 +28,17 @@ def | Define forth word  | Red
 int | Interp forth word  | Yellow
 tok | Store token text   | Orange
 
-There are multiple versions of HERE because, while separating the code and data spaces is not essential in some cases, it is a very good idea in others. For example, in embedded systems where the cost of SRAM (in terms of die area) is ten times that of Flash. Code space may be read-only at run time. UDATA and CDATA are required, so that's two instances of HERE. The default is CDATA. If you want to keep all your data in code space, that's your business.
-
-In the interest of scalability, to support libraries, the ANS Forth search order wordlist is adopted. 
-
 The IDE should remember the name of the project file. It's this file that gets loaded upon reload. Everything is compiled from source instantly. In the beginning, colorForth knows nothing. It doesn't know what DUP means. You load all that in the form of macros. Granted, macros don't leverage analytical compilers. Stack computers solve that problem. A virtual stack computer is fine as an execution target.
 
-There may be a list of predefined words with dual-token semantics. Headers are assumed to be dual-xt. When you create a word, it has default "compile call to me" and "execute me" semantics.
+There should be a list of predefined words with dual-token semantics. Headers are assumed to be dual-xt. The loader executes one xt or the other depending on color. It allows things like EQU, which is like a CONSTANT without code. As Zen-like as starting out with an empty lexicon seems, there's no getting past the need for predefined wordlists as with ANS Forth. However, they can be tailored to the system to keep the word count to a minimum.
+
+Should the default behaviors of *red* be changeable, to allow creation of defining words? I think yes. That means the host must be able to execute the xt, which is already one of the ground rules. Execute means execute, even if it takes an instruction set simulator.
+ 
+Magenta variables are a problem here because the HTML source is rather unwieldy. The token stream isn't necessarily addressable. Magenta variables would have to save the file name and file position of the variable. It could go out and touch the file.
+
+Speaking of late binding, what about forward references? I think not a problem. Define the word as empty. Later on, resolve its code with a jump. That means having predefined words for this.
+
+There are multiple versions of HERE because, while separating the code and data spaces is not essential in some cases, it is a very good idea in others. For example, in embedded systems where the cost of SRAM (in terms of die area) is ten times that of Flash. Code space may be read-only at run time. UDATA and CDATA are required, so that's two instances of HERE. The default is CDATA. If you want to keep all your data in code space, that's your business.
+
+In the interest of scalability, to support libraries, the ANS Forth search order wordlist is adopted. Search and basic code space management are basic predefined functionalities.
+
