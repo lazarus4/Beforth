@@ -10,9 +10,11 @@ Tokenization is the basic premise behind the source code structure. Source code 
 ```
 <tag>Your Token Here</tag>
 ```
-If your source code has tags that aren't colorForth, the loader or tokenizer will skip them. So, you can document your code in HTML. The tags are defined in a CSS. You can change the tag attributes to what pleases you visually. The encoding of the source code shall be UTF-8. This is a major entitlement, I think. Tokens are strings of Unicode with UTF-8 encoding. With that established, you can build a language. A token that leaves its address on the stack needs its own color. Orange: Immediately load the token text into a TIB and push its address and length. Orange you glad you have it?
+If your source code has tags that aren't colorForth, the loader or tokenizer will skip them. So, you can document your code in HTML. The tags are defined in a CSS. You can change the tag attributes to what pleases you visually. The encoding of the source code shall be UTF-8. This is a major entitlement, I think. Tokens are strings of Unicode with UTF-8 encoding. With that established, you can build a language. A token that leaves its address on the stack needs its own color. Orange: Immediately load the token text into a TIB and push its address and length. Orange you glad you have it? 
 
-Numbers are also character strings, unlike the block version. So, the radix should be part of the notation. The C standard should be used for this. For example, 1000 and 0x3E8 mean the same thing.
+One of the host words would be `s,` ( c-addr u -- ) which compiles a string.
+
+Numbers are also character strings, unlike the block version. So, the radix should be part of the notation. The C standard should be used for this. For example, 1000 and 0x3E8 mean the same thing. A lime green number fails if it's not a valid number. A yellow number expects a valid number. Notice that a yellow number could be clever and implement this functionality: If the number fails, it's a string. Not good enough. Some strings are incidental numbers. A green number (not as bright as lime green) compiles straight to code space (like comma). 
 
 Keep in mind that tag attributes can have any 24-bit background or foreground color, any font, bold, italic or underline. These are within the scope of the CSS. You need to know how to include the link to the CSS sheet in your HTML document. Trivial. However, the tag names must be established. Short names that don't clash with standard tags. Here are the tags historically used by GreenArrays along with my proposed tag name:
 
@@ -34,7 +36,7 @@ The magic of Magenta is that re-building the dictionary doesn't lose your work. 
 
 The IDE should remember the name of the project file. It's this file that gets loaded upon reload. Everything is compiled from source instantly. In the beginning, colorForth knows nothing. It doesn't know what DUP means. You load all that in the form of macros. Granted, macros don't leverage analytical compilers. Stack computers solve that problem. A virtual stack computer is fine as an execution target.
 
-There should be a list of predefined words with dual-token semantics. Headers are assumed to be dual-xt. The loader executes one xt or the other depending on color. It allows things like EQU, which is like a CONSTANT without code. As Zen-like as starting out with an empty lexicon seems, there's no getting past the need for predefined wordlists as with ANS Forth. However, they can be tailored to the system to keep the word count to a minimum. These words cost nothing. They are part of the host.
+There should be a list of predefined host words with dual-token semantics. Headers are assumed to be dual-xt. The loader executes one xt or the other depending on color. It allows things like EQU, which is like a CONSTANT without code. As Zen-like as starting out with an empty lexicon seems, there's no getting past the need for predefined wordlists as with ANS Forth. However, they can be tailored to the system to keep the word count to a minimum. These words cost nothing. They are part of the host.
 
 Should the default behaviors of *red* be changeable, to allow creation of defining words? I think not. Chuck Moore had this to say:
 
