@@ -38,7 +38,9 @@ The first USER variable of the task is FOLLOWER. FOLLOWER is placed first becaus
 - RP0: initial return stack pointer      
 - SP0: initial data stack pointer        
 - TOS: -> top of saved stack                   
-- Handler: catch/throw handler               
+- Handler: catch/throw handler     
+
+Octet handling is not the VM's job. In hardware, there's no reason for C@ etc. That's a software thing. Implement your own byte space. Using bytes for flags is a common shortcut. Use ON and OFF to manage bits in a bit space. SRAM isn't cheap.
 
 ## VM metal
 Stacks are kept in data memory. Stack pointers are registers. The top of the data stack is in a register, as with most classic Forths. Other registers are SP, RP and UP. In a hardware implementation, stack operations take one clock cycle because data memory is rather small: a few kB. The CPU would be a Harvard machine. The cost for this is extra time for memory access operations: Two clocks instead of one. Fetch using T as the address would be single cycle. Store using A as the address would be two cycles: Store and pop. Return stack access would be two-cycle due to dual push/pop. The main rationale for the classic stack setup is easy context switching in multitasking.
