@@ -7,7 +7,6 @@ The VM has the following system features:
 - 16-bit code address units. Used for accessing flash memory.
 - 32-bit or 16-bit data address units. Used for accessing SRAM.
 - Endian-agnostic: Byte order determined by the host.
-- Separate floating point stack. Floating point is optional.
 
 ## VM memory model
 The VM is written in JavaScript using typed arrays. The main part of the VM is a large switch statement that's portable to C. 
@@ -19,7 +18,15 @@ var RM = new Int32Array(regsMemSize); // Registers for VM
 ```
 The fetch and store primitives may implement the address ranges that your hardware prefers. For example, if code starts at 0x8000 in your real life MCU, address 0x8000 maps to CM[0].
 
-The *undo* buffer packs address and data space into a single 32-bit token for undo operations. The upper two MSBs are the type bits: {CM, DM, RM, spare}. The single stepper/unstepper uses a 16-byte undo structure {flags, token, old, new}. The token for program counter (PC), for example, could be RM[0].
+The *undo* buffer packs address and data space into a single 32-bit token for undo operations. The upper two MSBs are the type bits: {CM, DM, RM, spare}. The single stepper/unstepper uses a 16-byte undo structure {flags, token, old, new}. The token for program counter (PC), for example, could be RM[0]. The VM registers are:
+
+- RM[0] = `PC` program counter.
+- RM[1] = `FLAGS` carry-out flag from +. May contain other flags.
+- RM[2] = `T0` top of data stack.
+- RM[3] = `T1` aux top of data stack.
+- RM[4] = `UP` user pointer.
+- RM[5] = `SP` data stack pointer.
+- RM[6] = `RP` return stack pointer.
 
 Execution tokens, for example used by `EXECUTE ( xt -- )`, are either VM opcodes or addresses in code space. EXECUTE treates negative numbers as VM opcodes. For example, the EXECUTE instruction does a 1s complement negate (~xt) to get the opcode to execute. An xt of -1 executes opcode 0.
 
@@ -34,11 +41,11 @@ The first USER variable of the task is FOLLOWER. FOLLOWER is placed first becaus
 - Handler: catch/throw handler               
 
 ## VM metal
-Stacks are kept in data memory. Stack pointers are registers. The top of the data stack is in a register, as with most classic Forths. Other registers are SP, RP and UP. 
+Stacks are kept in data memory. Stack pointers are registers. The top of the data stack is in a register, as with most classic Forths. Other registers are SP, RP and UP. In a hardware implementation, stack operations take one clock cycle because data memory is rather small: a few kB. The CPU would be a Harvard machine. The cost for this is extra time for memory access operations: Two clocks instead of one. Fetch using T as the address would be single cycle. Store using A as the address would be two cycles: Store and pop. Return stack access would be two-cycle due to dual push/pop. The main rationale for the classic stack setup is easy context switching in multitasking.
 
 16-bit instructions strike a good balance between size and speed. The VM uses a tight loop that fetches the next 16-bit instruction from CM and executes it. The instruction encoding allows for compact calls and jumps. Taking a hardware-friendly view of the VM, the four MSBs of the instruction are decoded into four instruction groups:
 
-- 000s = opcode: k2/k18 + pop + push + ret + spare + op6 = 2-bit/18-bit optional literal, opcode, push and return bits [1]
+- 000s = opcode: k2/k18 + ret + push + pop + spare + op6 = 2-bit/18-bit optional literal, opcode, push and return bits [1]
 - 001s = iopcode: k8/k24 + op4 = opcode with 8-bit/24-bit signed data [2]
 - 011s = literal: k12/k28 = 12-bit or 28-bit signed literal
 - 100s = jump: k12/k28 = signed PC displacement
@@ -60,8 +67,8 @@ Opcode coding is:
 - 10010p = Fetch from dm[A[k]]. Postincrement A if p='1'.
 - 10011p = Store to dm[A[k]]. Postincrement A if p='1'. 
 - 101xxx = reserved for user.
-- 110rrr = TOS[s] to register: {A[d], up, sp, rp, R, --R]
-- 111rrr = Register to TOS[d]: {A[s], up, sp, rp, R, R++]
+- 110rrr = TOS[s] to register: {A[d], up, sp, rp, R, push]
+- 111rrr = Register to TOS[d]: {A[s], up, sp, rp, R, pop, t, n]
 
 \[2]: There are 16 iopcodes that take immediate data. They are:
 - `0` +lit  ( n -- n + k )  Add signed k to TOS[0]. {1+, 1-, CELL+, CHAR+}
