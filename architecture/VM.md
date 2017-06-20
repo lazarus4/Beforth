@@ -92,11 +92,7 @@ Opcode coding is:
 
 Syscall functions are in a JS function array. All others are hard coded in the VM.
 
-Implementing double precision arithmetic such as UM/MOD and UM\* will require some finesse, since JavaScript doesn't do 64-bit integers. First, the operands are checked to see if they fit a 32-bit operation. If not, things get done the "slow" way. Multiply is done using four 16\*16 operations. Divide is done using either shift-and-subtract or several 32/16 divides.
-
-Rather than taking the classic approach of `: * UM* DROP ;`, the VM provides a single \* primitive and expects things like UM\* and M\* to be defined in Forth. Note that /\* is a primitive. JS will use the FPU to execute it. UM\* isn't so tough: Use \* four times to multiply 16-bit numbers and merge the results. This means that scaling tricks like `scaleVal M* NIP` will be slower, not faster, than `scaleVal 65536 */`. A more useful word for scaling would be `.*`, fractional multiply, the equivalent of `: .* ( n1 -- n2 ) M* D2* D2* NIP ;`. The scale value would be between -2 and +2.
-
-UM/MOD is not a VM primitive. Numeric conversion could use a bignum-like primitive that uses an 8-bit divisor and 64-bit dividend.
+Multiplication is done with a `*+` step, which is a fractional multiply (multiplier range = 0 to 1).
 
 ## Usage
 The basic Forth system is designed as a kernel that can run stand-alone in an embedded system. In other words, the code image compiled by the C can conceivably be copied over to a static ROM image and run in an embedded system. The VM is simple enough to port to the embedded system, so it doesn't need any C. Essentially, Beforth is an embedded system simulator with the cross compiler written in C.
