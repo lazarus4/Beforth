@@ -60,8 +60,8 @@ Opcode coding is:
 - 01pppp = One-output operation. TOS[d] = func(TOS[s]). func codes p are: {2\*, 2/, u2/, ror, rol, cy@}. 
 - 100ptt = Fetch from mem[A[k]]. Postincrement A if p='1'. tt = size: {byte, half, cell}
 - 101ptt = Store to mem[A[k]]. Postincrement A if p='1'. tt = size: {byte, half, cell}
-- 110rrr = TOS[s] to register: {A[d], up, sp, rp, R]
-- 111rrr = Register to TOS[d]: {A[s], up, sp, rp, R]
+- 110rrr = TOS[s] to register: {A[d], up, sp, rp, R, --R]
+- 111rrr = Register to TOS[d]: {A[s], up, sp, rp, R, R++]
 
 \[2]: There are 16 iopcodes that take immediate data. They are:
 - `0` +lit  ( n -- n + k )  Add signed k to TOS[0]. {1+, 1-, CELL+, CHAR+}
