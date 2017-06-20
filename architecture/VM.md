@@ -53,7 +53,7 @@ The *s* bit indicates instruction size. If '1', 16-bit immediate data follows. T
 
 \[1]: If the *ret* bit is set, a return is executed with the opcode. With a hardware implementation, the return would be initiated first (PC popped) and then the instruction executed while the branch is in progress. The VM should do it this way. If the *push* bit is set, TOS is pushed onto the data stack (mem[--SP]=TOS) before the instruction is executed. If the *ret* bit is also set, the return will be executed first, then TOS will be pushed, then the instruction will execute. In a hardware implementation, the instruction could write to TOS concurrently. In the case of memory operations, it may be blocked until the TOS is written. If the *pop* bit is set, TOS will be popped from the data stack after the instruction.
 
-The two k bits may be used to address to instances of TOS. k[1]=s, k[0]=d.
+The two k bits may be used to address two instances of TOS. k[1]=s, k[0]=d.
 
 Opcode coding is:
 - 00pppp = Two-input, one-output operation. TOS[d] = func(TOS[s], mem[SP]). func codes p are: {+, &, |, ^, nop, -, R-}. 
@@ -64,22 +64,22 @@ Opcode coding is:
 - 111rrr = Register to TOS[d]: {A[s], up, sp, rp, R]
 
 \[2]: There are 16 iopcodes that take immediate data. They are:
-- `0` +lit  ( n -- n + k )  Add signed k to TOS. {1+, 1-, CELL+, CHAR+}
-- `1` &lit  ( n -- n & k )  Bitwise-and signed k to TOS.
-- `2` |lit  ( n -- n & k )  Bitwise-or signed k to TOS.
-- `3` ^lit  ( n -- n & k )  Bitwise-xor signed k to TOS. {INVERT}
-- `4` xlit  ( n -- n<<8 + k )  Shift TOS left 8 places and add unsigned k.
+- `0` +lit  ( n -- n + k )  Add signed k to TOS[0]. {1+, 1-, CELL+, CHAR+}
+- `1` &lit  ( n -- n & k )  Bitwise-and signed k to TOS[0].
+- `2` |lit  ( n -- n & k )  Bitwise-or signed k to TOS[0].
+- `3` ^lit  ( n -- n & k )  Bitwise-xor signed k to TOS[0]. {INVERT}
+- `4` xlit  ( n -- n<<8 + k )  Shift TOS[0] left 8 places and add unsigned k.
 - `5` uplit  ( -- a )  Get user variable address UP + k. {UP@, USER variables}
 - `6` rplit  ( -- a )  Get local variable address RP + k. {RP@, local variables}
 - `7` split  ( -- a )  Get pick address SP + k. {SP@, PICK}
 - `8` syscall  ( ? -- ? )  Call Fn[k[23:5] to the underlying system using k[2:0] input and k[4:3] output parameters. 
-- `9` @lit  ( -- mem[k] )  Fetch cell from memory address k.
-- `A` c@lit  ( -- mem[k] )  Fetch byte from memory address k.
-- `B` w@lit  ( -- mem[k] )  Fetch 16-bit from memory address k.
-- `C` 0bran  ( flag -- )  Branch if flag=0 using displacement k.
-- `D` !lit  ( n -- )  Store cell to memory address k.
-- `E` c!lit  ( n -- )  Store byte to memory address k.
-- `F` w!lit  ( n -- )  Store 16-bit to memory address k.
+- `9` @lit  ( -- mem[k] )  Fetch cell from memory address k into TOS[0].
+- `A` c@lit  ( -- mem[k] )  Fetch byte from memory address k into TOS[0].
+- `B` w@lit  ( -- mem[k] )  Fetch 16-bit from memory address k into TOS[0].
+- `C` 0bran  ( flag -- )  Branch if flag=0 using displacement k into TOS[0].
+- `D` !lit  ( n -- )  Store TOS[0] cell to memory address k.
+- `E` c!lit  ( n -- )  Store TOS[0] byte to memory address k.
+- `F` w!lit  ( n -- )  Store TOS[0] 16-bit to memory address k.
 
 Syscall functions are in a JS function array. All others are hard coded in the VM.
 
