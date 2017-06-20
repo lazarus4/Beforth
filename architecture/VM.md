@@ -41,7 +41,7 @@ Stacks are kept in data memory. Stack pointers are registers. The top of the dat
 
 16-bit instructions strike a good balance between size and speed. The VM uses a tight loop that fetches the next 16-bit instruction from CM and executes it. The instruction encoding allows for compact calls and jumps. Taking a hardware-friendly view of the VM, the four MSBs of the instruction are decoded into four instruction groups:
 
-- 000s = opcode: k4/k20 + pop + push + ret + op = 4-bit/20-bit optional literal, opcode, push and return bits [1]
+- 000s = opcode: k2/k18 + pop + push + ret + op7 = 2-bit/18-bit optional literal, opcode, push and return bits [1]
 - 001s = iopcode: k8/k24 + op4 = opcode with 8-bit/24-bit signed data [2]
 - 011s = literal: k12/k28 = 12-bit or 28-bit signed literal
 - 100s = jump: k12/k28 = signed PC displacement
@@ -51,25 +51,24 @@ Stacks are kept in data memory. Stack pointers are registers. The top of the dat
 
 The *s* bit indicates instruction size. If '1', 16-bit immediate data follows. This covers most literals. Extremely large literals can be formed by compiling 28-bit literal and an additional *xlit* opcode (0x2XXX group) to shift in the remaining 4 bits.
 
-\[1]: The opcode should use k in a hardware-friendly way. If the *ret* bit is set, a return is executed with the opcode. With a hardware implementation, the return would be initiated first (PC popped) and then the instruction executed while the branch is in progress. The VM should do it this way. 
+\[1]: If the *ret* bit is set, a return is executed with the opcode. With a hardware implementation, the return would be initiated first (PC popped) and then the instruction executed while the branch is in progress. The VM should do it this way. If the *push* bit is set, TOS is pushed onto the data stack (mem[--SP]=TOS) before the instruction is executed. If the *ret* bit is also set, the return will be executed first, then TOS will be pushed, then the instruction will execute. In a hardware implementation, the instruction could write to TOS concurrently. In the case of memory operations, it may be blocked until the TOS is written. If the *pop* bit is set, TOS will be popped from the data stack after the instruction.
 
-If the *push* bit is set, TOS is pushed onto the data stack (mem[--SP]=TOS) before the instruction is executed. If the *ret* bit is also set, the return will be executed first, then TOS will be pushed, then the instruction will execute. In a hardware implementation, the instruction could write to TOS concurrently. In the case of memory operations, it may be blocked until the TOS is written. 
-
-If the *pop* bit is set, TOS will be popped from the data stack after the instruction.
+The two k bits may be used to address to instances of TOS. k[1]=s, k[0]=d.
 
 Opcode coding is:
-- 00pppp = Two-input, one-output operation. TOS = func(TOS, mem[SP]). func codes p are: {+, &, |, ^, nop}. 
-- 01pppp = One-output operation. TOS = func(TOS). func codes p are: {2\*, 2/, u2/, ror, rol, cy@, a[k]@}. 
-- 100ptt = Fetch from mem[A]. Postincrement A if p='1'. tt = size: {byte, half, cell}
-- 101ptt = Store to mem[A]. Postincrement A if p='1'. tt = size: {byte, half, cell}
-- 110rrr = TOS to register: {A[k], up, sp, rp]
+- 00pppp = Two-input, one-output operation. TOS[d] = func(TOS[s], mem[SP]). func codes p are: {+, &, |, ^, nop, -, R-}. 
+- 01pppp = One-output operation. TOS[d] = func(TOS[s]). func codes p are: {2\*, 2/, u2/, ror, rol, cy@}. 
+- 100ptt = Fetch from mem[A[k]]. Postincrement A if p='1'. tt = size: {byte, half, cell}
+- 101ptt = Store to mem[A[k]]. Postincrement A if p='1'. tt = size: {byte, half, cell}
+- 110rrr = TOS[s] to register: {A[d], up, sp, rp, R]
+- 111rrr = Register to TOS[d]: {A[s], up, sp, rp, R]
 
 \[2]: There are 16 iopcodes that take immediate data. They are:
 - `0` +lit  ( n -- n + k )  Add signed k to TOS. {1+, 1-, CELL+, CHAR+}
 - `1` &lit  ( n -- n & k )  Bitwise-and signed k to TOS.
 - `2` |lit  ( n -- n & k )  Bitwise-or signed k to TOS.
 - `3` ^lit  ( n -- n & k )  Bitwise-xor signed k to TOS. {INVERT}
-- `4` xlit  ( n -- n\*16 + k )  Shift TOS left 4 places and add 4-bit unsigned k.
+- `4` xlit  ( n -- n<<8 + k )  Shift TOS left 8 places and add unsigned k.
 - `5` uplit  ( -- a )  Get user variable address UP + k. {UP@, USER variables}
 - `6` rplit  ( -- a )  Get local variable address RP + k. {RP@, local variables}
 - `7` split  ( -- a )  Get pick address SP + k. {SP@, PICK}
