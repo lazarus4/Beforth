@@ -3,9 +3,10 @@
 The Beforth VM is a small bytecode interpreter that is equally at home on the desktop and in small embedded systems. The VM and the Forth system are written from the point of view of a small MCU. The essential parts of the runtime system are contained in the VM and optional compiler extensions are added in a way that allows the Forth and the user application to be ported over to an MCU. 
 
 The VM has the following system features:
-- 32-bit cell size.
-- 8-bit address units.
-- Switchable between little-endian (default) and big-endian.
+- 32-bit or 16-bit cell size.
+- 16-bit code address units. Used for accessing flash memory.
+- 32-bit or 16-bit data address units. Used for accessing SRAM.
+- Endian-agnostic: Byte order determined by the host.
 - Separate floating point stack. Floating point is optional.
 
 ## VM memory model
@@ -16,13 +17,9 @@ var CM = new Int16Array(codeMemSize); // Code space
 var DM = new Int32Array(dataMemSize); // Data space
 var RM = new Int32Array(regsMemSize); // Registers for VM
 ```
-Literals are signed, so we want addresses to have small absolute values. In hex, the address ranges could be:
+The fetch and store primitives may implement the address ranges that your hardware prefers. For example, if code starts at 0x8000 in your real life MCU, address 0x8000 maps to CM[0].
 
-- `00000000` to `00FFFFFF`	Code space, start address is 0.
-- `FF000000` to `FFFFFFFF`	Data space, start address is (-DM.length). Use a DM size that's a power of 2.
-- `FE000000` to `FE0000FF`	VM registers (PC, SP, RP, etc.)
-
-The single stepper uses these addresses as tokens. The program counter (PC), for example, could be RM[0].
+The *undo* buffer packs address and data space into a single 32-bit token for undo operations. The upper two MSBs are the type bits: {CM, DM, RM, spare}. The single stepper/unstepper uses a 16-byte undo structure {flags, token, old, new}. The token for program counter (PC), for example, could be RM[0].
 
 Execution tokens, for example used by `EXECUTE ( xt -- )`, are either VM opcodes or addresses in code space. EXECUTE treates negative numbers as VM opcodes. For example, the EXECUTE instruction does a 1s complement negate (~xt) to get the opcode to execute. An xt of -1 executes opcode 0.
 
@@ -41,7 +38,7 @@ Stacks are kept in data memory. Stack pointers are registers. The top of the dat
 
 16-bit instructions strike a good balance between size and speed. The VM uses a tight loop that fetches the next 16-bit instruction from CM and executes it. The instruction encoding allows for compact calls and jumps. Taking a hardware-friendly view of the VM, the four MSBs of the instruction are decoded into four instruction groups:
 
-- 000s = opcode: k2/k18 + pop + push + ret + op7 = 2-bit/18-bit optional literal, opcode, push and return bits [1]
+- 000s = opcode: k2/k18 + pop + push + ret + spare + op6 = 2-bit/18-bit optional literal, opcode, push and return bits [1]
 - 001s = iopcode: k8/k24 + op4 = opcode with 8-bit/24-bit signed data [2]
 - 011s = literal: k12/k28 = 12-bit or 28-bit signed literal
 - 100s = jump: k12/k28 = signed PC displacement
@@ -53,13 +50,16 @@ The *s* bit indicates instruction size. If '1', 16-bit immediate data follows. T
 
 \[1]: If the *ret* bit is set, a return is executed with the opcode. With a hardware implementation, the return would be initiated first (PC popped) and then the instruction executed while the branch is in progress. The VM should do it this way. If the *push* bit is set, TOS is pushed onto the data stack (mem[--SP]=TOS) before the instruction is executed. If the *ret* bit is also set, the return will be executed first, then TOS will be pushed, then the instruction will execute. In a hardware implementation, the instruction could write to TOS concurrently. In the case of memory operations, it may be blocked until the TOS is written. If the *pop* bit is set, TOS will be popped from the data stack after the instruction.
 
-The two k bits may be used to address two instances of TOS. k[1]=s, k[0]=d.
+The two k bits may be used to address two instances of TOS. k[1]=s, k[0]=d. There are four instances of A.
 
 Opcode coding is:
-- 00pppp = Two-input, one-output operation. TOS[d] = func(TOS[s], mem[SP]). func codes p are: {+, &, |, ^, nop, -, R-}. 
+- 00pppp = Two-input, one-output operation. TOS[d] = func(TOS[s], mem[SP]). func codes p are: {+, &, |, ^, nop, \*+, -, R-}. 
 - 01pppp = One-output operation. TOS[d] = func(TOS[s]). func codes p are: {2\*, 2/, u2/, ror, rol, cy@}. 
-- 100ptt = Fetch from mem[A[k]]. Postincrement A if p='1'. tt = size: {byte, half, cell}
-- 101ptt = Store to mem[A[k]]. Postincrement A if p='1'. tt = size: {byte, half, cell}
+- 10000p = Fetch from cm[A[k]]. Postincrement A if p='1'.
+- 10001p = Store to cm[A[k]]. Postincrement A if p='1'. 
+- 10010p = Fetch from dm[A[k]]. Postincrement A if p='1'.
+- 10011p = Store to dm[A[k]]. Postincrement A if p='1'. 
+- 101xxx = reserved for user.
 - 110rrr = TOS[s] to register: {A[d], up, sp, rp, R, --R]
 - 111rrr = Register to TOS[d]: {A[s], up, sp, rp, R, R++]
 
@@ -72,14 +72,14 @@ Opcode coding is:
 - `5` uplit  ( -- a )  Get user variable address UP + k. {UP@, USER variables}
 - `6` rplit  ( -- a )  Get local variable address RP + k. {RP@, local variables}
 - `7` split  ( -- a )  Get pick address SP + k. {SP@, PICK}
-- `8` syscall  ( ? -- ? )  Call Fn[k[23:5] to the underlying system using k[2:0] input and k[4:3] output parameters. 
-- `9` @lit  ( -- mem[k] )  Fetch cell from memory address k into TOS[0].
-- `A` c@lit  ( -- mem[k] )  Fetch byte from memory address k into TOS[0].
-- `B` w@lit  ( -- mem[k] )  Fetch 16-bit from memory address k into TOS[0].
+- `8` @lit  ( -- mem[k] )  Fetch cell from data address k into TOS[0].
+- `9` @litc  ( -- mem[k] )  Fetch cell from code address k into TOS[0].
+- `A` !lit  ( n -- )  Store TOS[0] cell to data address k.
+- `B` !litc  ( n -- )  Store TOS[0] cell to code address k.
 - `C` 0bran  ( flag -- )  Branch if flag=0 using displacement k into TOS[0].
-- `D` !lit  ( n -- )  Store TOS[0] cell to memory address k.
-- `E` c!lit  ( n -- )  Store TOS[0] byte to memory address k.
-- `F` w!lit  ( n -- )  Store TOS[0] 16-bit to memory address k.
+- `D` next  ( R: n -- n-1 )  Branch if (--R)>=0 using displacement k into TOS[0]. Pop if branch not taken.
+- `E` -bran  ( n -- n )  Branch if n<0 using displacement k into TOS[0].
+- `F` syscall  ( ? -- ? )  Call Fn[k[23:5] to the underlying system using k[2:0] input and k[4:3] output parameters. 
 
 Syscall functions are in a JS function array. All others are hard coded in the VM.
 
