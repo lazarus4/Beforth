@@ -4,10 +4,9 @@ The Beforth VM is a small bytecode interpreter that is equally at home on the de
 
 The VM has the following system features:
 - 32-bit or 16-bit cell size.
-- 16-bit code cells. Used for accessing flash memory.
-- Cell-size data cells. Used for accessing SRAM.
-- Both use byte address units whether or not octets are supported.
-- Endian-agnostic: Byte order determined by the host.
+- 16-bit address units.
+- Data memory is even-address aligned if 32-bit system.
+- Little endian.
 
 ## VM memory model
 The VM is written in JavaScript using typed arrays. The main part of the VM is a large switch statement that's portable to C. 
@@ -17,7 +16,7 @@ var CM = new Int16Array(codeMemSize); // Code space
 var DM = new Int32Array(dataMemSize); // Data space
 var RM = new Int32Array(regsMemSize); // Registers for VM
 ```
-The fetch and store primitives may implement the address ranges that your hardware prefers. For example, if code starts at 0x8000 in your real life MCU, address 0x8000 maps to CM[0]. Code fetch and data fetch are different primitives. Code fetch may use external SPI flash for XIP code, for example. The memory opcodes have spare bits so you may add size information if necessary.
+The fetch and store primitives may implement the address ranges that your hardware prefers. For example, if code starts at 0x8000 in your real life MCU, address 0x8000 maps to CM[0]. Code fetch and data fetch are different primitives. Code fetch may use external SPI flash for XIP code, for example. 
 
 The *undo* buffer packs address and data space into a single 32-bit token for undo operations. The upper two MSBs are the type bits: {CM, DM, RM, spare}. The single stepper/unstepper uses a 16-byte undo structure {flags, token, old, new}. The token for program counter (PC), for example, could be RM[0]. The VM registers are:
 
@@ -42,10 +41,10 @@ The first USER variable of the task is FOLLOWER. FOLLOWER is placed first becaus
 - TOS: -> top of saved stack                   
 - Handler: catch/throw handler     
 
-Octet handling is not the VM's job. In hardware, there's no reason for C@ etc. That's a software thing. Implement your own byte space. Using bytes for flags is a common shortcut. Use ON and OFF to manage bits in a bit space. SRAM isn't cheap.
+Octet handling is beyond the scope of the VM. In hardware, there's no reason for C@ etc. That's a software thing. Implement your own byte space. Using bytes for flags is a common shortcut. Use ON and OFF to manage bits in a bit space. SRAM isn't cheap. Granted, many streams are byte-oriented and you need to parse them. Octet support in hardware should not be a dependency.
 
 ## VM metal
-Stacks are kept in data memory. Stack pointers are registers. The top of the data stack is in a register, as with most classic Forths. Other registers are SP, RP and UP. In a hardware implementation, stack operations take one clock cycle because data memory is rather small: a few kB. The CPU would be a Harvard machine. The cost for this is extra time for memory access operations: Two clocks instead of one. Fetch using T as the address would be single cycle. Store using A as the address would be two cycles: Store and pop. Return stack access would be two-cycle due to dual push/pop. The main rationale for the classic stack setup is easy context switching in multitasking.
+Stacks are kept in data memory. Stack pointers are registers. The top of the data stack is in a register, as with most Forths. Other registers are SP, RP and UP. In a hardware implementation, stack operations take one clock cycle because data memory is rather small: a few kB. The CPU is a Harvard machine. The main rationale for the classic stack setup is easy context switching in multitasking.
 
 16-bit instructions strike a good balance between size and speed. The VM uses a tight loop that fetches the next 16-bit instruction from CM and executes it. The instruction encoding allows for compact calls and jumps. Taking a hardware-friendly view of the VM, the four MSBs of the instruction are decoded into four instruction groups:
 
@@ -59,6 +58,8 @@ Stacks are kept in data memory. Stack pointers are registers. The top of the dat
 
 The *s* bit indicates instruction size. If '1', 16-bit immediate data follows. This covers most literals. Extremely large literals can be formed by compiling 28-bit literal and an additional *xlit* opcode (0x2XXX group) to shift in the remaining 4 bits.
 
+An MCU implementation can use 1 or 2 multi-way jumps to decode instructions.
+
 ### \[1]: 
 If the *ret* bit is set, a return is executed with the opcode. With a hardware implementation, the return would be initiated first (PC popped) and then the instruction executed while the branch is in progress. The VM should do it this way. 
 
@@ -68,7 +69,7 @@ The 4-bit *stack* field (one pair each for data and return stacks) tell the hard
 - 01 = push T or R to the data/return stack (mem[--SP/RP]) before/upon executing the instruction.
 - 11 = pop T or R from the data stack (mem[SP/RP++]) after/upon executing the instruction.
 
-The k bits may be used to address two instances of TOS. There are two instances of A.
+The k[1:0] bits may be used to address two instances of TOS. There are two instances of A.
 
 **op1=0** Load T[d] with a data source. k[1]=s, k[0]=d. The sources are:
 - `0` 2\*  Left shifted T[s].
@@ -79,8 +80,8 @@ The k bits may be used to address two instances of TOS. There are two instances 
 - `5` cy  s=0: Carry out of last add or shift. s=1: R.
 - `6` cm  cm[A[s]]
 - `7` cm+  cm[A[s]++]
-- `8` a  A[s]
-- `9` \*+  multiplication step.
+- `8` a  k[17:2]={0 or -1}: A[s], else user-defined.
+- `9` \*+  s=0: multiplication step. s=1: division step.
 - `A` dm  dm[A[s]]
 - `B` dm+  dm[A[s]++]
 - `C` add  T[s] + mem[SP]
@@ -94,11 +95,11 @@ The k bits may be used to address two instances of TOS. There are two instances 
 - `2`
 - `3` 
 - `4` 
-- `5` p/r  s=0: PC. s=1: R.
+- `5` cy/r  s=0: carry flag. s=1: R.
 - `6` 
 - `7` 
-- `8` a  A[d]
-- `9` 
+- `8` a  k[17:2]={0 or -1}: A[d], else user-defined.
+- `9` load mul/div registers.
 - `A` dm  dm[A[d]]
 - `B` dm+  dm[A[d]++]
 - `C` 
@@ -110,21 +111,21 @@ Note that you can't store to cm. Code memory storage is an OS function.
 
 ### \[2] 
 There are 16 iopcodes that take immediate data. They are:
-- `0` +lit  ( n -- n + k )  Add signed k to TOS[0]. {1+, 1-, CELL+, CHAR+}
-- `1` &lit  ( n -- n & k )  Bitwise-and signed k to TOS[0].
-- `2` |lit  ( n -- n & k )  Bitwise-or signed k to TOS[0].
-- `3` ^lit  ( n -- n & k )  Bitwise-xor signed k to TOS[0]. {INVERT}
-- `4` xlit  ( n -- n<<8 + k )  Shift TOS[0] left 8 places and add unsigned k.
-- `5` uplit  ( -- a )  Get user variable address UP + k. {UP@, USER variables}
-- `6` rplit  ( -- a )  Get local variable address RP + k. {RP@, local variables}
-- `7` split  ( -- a )  Get pick address SP + k. {SP@, PICK}
-- `8` @lit  ( -- mem[k] )  Fetch cell from data address k into TOS[0].
-- `9` @litc  ( -- mem[k] )  Fetch cell from code address k into TOS[0].
-- `A` !lit  ( n -- )  Store TOS[0] cell to data address k.
-- `B` !litc  ( n -- )  Store TOS[0] cell to code address k.
-- `C` 0bran  ( flag -- )  Branch if flag=0 using displacement k into TOS[0].
-- `D` next  ( R: n -- n-1 )  Branch if (--R)>=0 using displacement k into TOS[0]. Pop if branch not taken.
-- `E` -bran  ( n -- n )  Branch if n<0 using displacement k into TOS[0].
+- `0` +lit  Add signed k to T[0]. {1+, 1-, CELL+, CHAR+}
+- `1` &lit  Bitwise-and signed k to T[0].
+- `2` |lit  Bitwise-or signed k to T[0].
+- `3` ^lit  Bitwise-xor signed k to T[0]. {INVERT}
+- `4` xlit  Shift T[0] left 4 places and add unsigned k.
+- `5` uplit  T[0] = user variable address UP + k. {UP@, USER variables}
+- `6` rplit  T[0] = local variable address RP + k. {RP@, local variables}
+- `7` split  T[0] = pick address SP + k. {SP@, PICK}
+- `8`
+- `9` 
+- `A` @lit  Fetch from data address k into T[0].
+- `B` !lit  Store T[0] to data address k.
+- `C` 0bran  Branch if T[0]=0 using displacement k.
+- `D` next  Branch if (--R)>=0 using displacement k. 
+- `E` -bran  Branch if T[0]<0 using displacement k.
 - `F` syscall  ( ? -- ? )  Call Fn[k[23:5] to the underlying system using k[2:0] input and k[4:3] output parameters. 
 
 Syscall functions are in a JS function array. All others are hard coded in the VM.
