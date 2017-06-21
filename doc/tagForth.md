@@ -14,7 +14,7 @@ If your source code has tags that aren't colorForth, the loader or tokenizer wil
 
 One of the host words would be `s,` ( c-addr u -- ) which compiles a string.
 
-Numbers are also character strings, unlike the block version. So, the radix should be part of the notation. The C standard should be used for this. For example, 1000 and 0x3E8 mean the same thing. A lime green number fails if it's not a valid number. A yellow number expects a valid number. Notice that a yellow number could be clever and implement this functionality: If the number fails, it's a string. Not good enough. Some strings are incidental numbers. A green number (not as bright as lime green) compiles straight to code space (like comma). 
+Numbers are also character strings, unlike the block version. So, the radix should be part of the notation. The C standard should be used for this. For example, 1000 and 0x3E8 mean the same thing. A lime green number fails if it's not a valid number. A yellow number expects a valid number. Notice that a yellow number could be clever and implement orange functionality: If the number fails, it's a string. Not good enough. Some strings are incidental numbers.
 
 Keep in mind that tag attributes can have any 24-bit background or foreground color, any font, bold, italic or underline. These are within the scope of the CSS. You need to know how to include the link to the CSS sheet in your HTML document. Trivial. However, the tag names must be established. Short names that don't clash with standard tags. Here are the tags historically used by GreenArrays along with my proposed tag name:
 
