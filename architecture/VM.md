@@ -4,8 +4,9 @@ The Beforth VM is a small bytecode interpreter that is equally at home on the de
 
 The VM has the following system features:
 - 32-bit or 16-bit cell size.
-- 16-bit code address units. Used for accessing flash memory.
-- 32-bit or 16-bit data address units. Used for accessing SRAM.
+- 16-bit code cells. Used for accessing flash memory.
+- Cell-size data cells. Used for accessing SRAM.
+- Both use byte address units whether or not octets are supported.
 - Endian-agnostic: Byte order determined by the host.
 
 ## VM memory model
@@ -16,7 +17,7 @@ var CM = new Int16Array(codeMemSize); // Code space
 var DM = new Int32Array(dataMemSize); // Data space
 var RM = new Int32Array(regsMemSize); // Registers for VM
 ```
-The fetch and store primitives may implement the address ranges that your hardware prefers. For example, if code starts at 0x8000 in your real life MCU, address 0x8000 maps to CM[0].
+The fetch and store primitives may implement the address ranges that your hardware prefers. For example, if code starts at 0x8000 in your real life MCU, address 0x8000 maps to CM[0]. Code fetch and data fetch are different primitives. Code fetch may use external SPI flash for XIP code, for example. The memory opcodes have spare bits so you may add size information if necessary.
 
 The *undo* buffer packs address and data space into a single 32-bit token for undo operations. The upper two MSBs are the type bits: {CM, DM, RM, spare}. The single stepper/unstepper uses a 16-byte undo structure {flags, token, old, new}. The token for program counter (PC), for example, could be RM[0]. The VM registers are:
 
@@ -24,9 +25,10 @@ The *undo* buffer packs address and data space into a single 32-bit token for un
 - RM[1] = `FLAGS` carry-out flag from +. May contain other flags.
 - RM[2] = `T0` top of data stack.
 - RM[3] = `T1` aux top of data stack.
-- RM[4] = `UP` user pointer.
-- RM[5] = `SP` data stack pointer.
-- RM[6] = `RP` return stack pointer.
+- RM[4] = `R` top of return stack.
+- RM[5] = `UP` user pointer.
+- RM[6] = `SP` data stack pointer.
+- RM[7] = `RP` return stack pointer.
 
 Execution tokens, for example used by `EXECUTE ( xt -- )`, are either VM opcodes or addresses in code space. EXECUTE treates negative numbers as VM opcodes. For example, the EXECUTE instruction does a 1s complement negate (~xt) to get the opcode to execute. An xt of -1 executes opcode 0.
 
@@ -47,8 +49,8 @@ Stacks are kept in data memory. Stack pointers are registers. The top of the dat
 
 16-bit instructions strike a good balance between size and speed. The VM uses a tight loop that fetches the next 16-bit instruction from CM and executes it. The instruction encoding allows for compact calls and jumps. Taking a hardware-friendly view of the VM, the four MSBs of the instruction are decoded into four instruction groups:
 
-- 000s = opcode: k2/k18 + ret + push + pop + spare + op6 = 2-bit/18-bit optional literal, opcode, push and return bits [1]
-- 001s = iopcode: k8/k24 + op4 = opcode with 8-bit/24-bit signed data [2]
+- 000s = opcode: ret + op1 + k2/k18 + stack + op4 = 2-bit/18-bit optional literal, opcode, stack operation, and return bit [1]
+- 001s = iopcode: k4/k20 + stack + op4 = opcode with 4-bit/20-bit signed data [2]
 - 011s = literal: k12/k28 = 12-bit or 28-bit signed literal
 - 100s = jump: k12/k28 = signed PC displacement
 - 101s = call: k12/k28 = signed PC displacement
@@ -57,22 +59,57 @@ Stacks are kept in data memory. Stack pointers are registers. The top of the dat
 
 The *s* bit indicates instruction size. If '1', 16-bit immediate data follows. This covers most literals. Extremely large literals can be formed by compiling 28-bit literal and an additional *xlit* opcode (0x2XXX group) to shift in the remaining 4 bits.
 
-\[1]: If the *ret* bit is set, a return is executed with the opcode. With a hardware implementation, the return would be initiated first (PC popped) and then the instruction executed while the branch is in progress. The VM should do it this way. If the *push* bit is set, TOS is pushed onto the data stack (mem[--SP]=TOS) before the instruction is executed. If the *ret* bit is also set, the return will be executed first, then TOS will be pushed, then the instruction will execute. In a hardware implementation, the instruction could write to TOS concurrently. In the case of memory operations, it may be blocked until the TOS is written. If the *pop* bit is set, TOS will be popped from the data stack after the instruction.
+### \[1]: 
+If the *ret* bit is set, a return is executed with the opcode. With a hardware implementation, the return would be initiated first (PC popped) and then the instruction executed while the branch is in progress. The VM should do it this way. 
 
-The two k bits may be used to address two instances of TOS. k[1]=s, k[0]=d. There are four instances of A.
+The 4-bit *stack* field (one pair each for data and return stacks) tell the hardware what kind of push operations go with this opcode:
 
-Opcode coding is:
-- 00pppp = Two-input, one-output operation. TOS[d] = func(TOS[s], mem[SP]). func codes p are: {+, &, |, ^, nop, \*+, -, R-}. 
-- 01pppp = One-output operation. TOS[d] = func(TOS[s]). func codes p are: {2\*, 2/, u2/, ror, rol, cy@}. 
-- 10000p = Fetch from cm[A[k]]. Postincrement A if p='1'.
-- 10001p = Store to cm[A[k]]. Postincrement A if p='1'. 
-- 10010p = Fetch from dm[A[k]]. Postincrement A if p='1'.
-- 10011p = Store to dm[A[k]]. Postincrement A if p='1'. 
-- 101xxx = reserved for user.
-- 110rrr = TOS[s] to register: {A[d], up, sp, rp, R, push]
-- 111rrr = Register to TOS[d]: {A[s], up, sp, rp, R, pop, t, n]
+- 00 = nothing to do
+- 01 = push T or R to the data/return stack (mem[--SP/RP]) before/upon executing the instruction.
+- 11 = pop T or R from the data stack (mem[SP/RP++]) after/upon executing the instruction.
 
-\[2]: There are 16 iopcodes that take immediate data. They are:
+The k bits may be used to address two instances of TOS. There are two instances of A.
+
+**op1=0** Load T[d] with a data source. k[1]=s, k[0]=d. The sources are:
+- `0` 2\*  Left shifted T[s].
+- `1` rol  Rotate Left T[s].
+- `2` 2/  Right shifted T[s].
+- `3` ror  Right Right T[s].
+- `4` u2/  Right shifted T[s] (unsigned).
+- `5` cy  s=0: Carry out of last add or shift. s=1: R.
+- `6` cm  cm[A[s]]
+- `7` cm+  cm[A[s]++]
+- `8` a  A[s]
+- `9` \*+  multiplication step.
+- `A` dm  dm[A[s]]
+- `B` dm+  dm[A[s]++]
+- `C` add  T[s] + mem[SP]
+- `D` &  T[s] & mem[SP]
+- `E` |  T[s] | mem[SP]
+- `F` ^  T[s] ^ mem[SP]
+
+**op1=1** Store T[s] to register/memory. k[1]=d, k[0]=s. Opcode coding is:
+- `0` 
+- `1` 
+- `2`
+- `3` 
+- `4` 
+- `5` p/r  s=0: PC. s=1: R.
+- `6` 
+- `7` 
+- `8` a  A[d]
+- `9` 
+- `A` dm  dm[A[d]]
+- `B` dm+  dm[A[d]++]
+- `C` 
+- `D` up
+- `E` sp
+- `F` rp
+
+Note that you can't store to cm. Code memory storage is an OS function.
+
+### \[2] 
+There are 16 iopcodes that take immediate data. They are:
 - `0` +lit  ( n -- n + k )  Add signed k to TOS[0]. {1+, 1-, CELL+, CHAR+}
 - `1` &lit  ( n -- n & k )  Bitwise-and signed k to TOS[0].
 - `2` |lit  ( n -- n & k )  Bitwise-or signed k to TOS[0].
