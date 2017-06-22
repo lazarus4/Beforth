@@ -46,9 +46,9 @@ Octet handling is beyond the scope of the VM. In hardware, there's no reason for
 ## VM metal
 Stacks are kept in data memory. Stack pointers are registers. The top of the data stack is in a register, as with most Forths. Other registers are SP, RP and UP. In a hardware implementation, stack operations take one clock cycle because data memory is rather small: a few kB. The CPU is a Harvard machine. The main rationale for the classic stack setup is easy context switching in multitasking.
 
-16-bit instructions strike a good balance between size and speed. The VM uses a tight loop that fetches the next 16-bit instruction from CM and executes it. The instruction encoding allows for compact calls and jumps. Taking a hardware-friendly view of the VM, the four MSBs of the instruction are decoded into four instruction groups:
+16-bit instructions strike a good balance between size and speed. An MCU implementation can use 1 or 2 multi-way jumps to decode instructions. The VM uses a tight loop that fetches the next 16-bit instruction from CM and executes it. The instruction encoding allows for compact calls and jumps. Taking a hardware-friendly view of the VM, the four MSBs of the instruction are decoded into four instruction groups:
 
-- 000s = opcode: ret + op1 + k2/k18 + stack + op4 = 2-bit/18-bit optional literal, opcode, stack operation, and return bit [1]
+- 000s = opcode: ret + op1 + k2/k18 + stack + op4 = 2-bit/18-bit literal, opcode, stack operation, and return bit [1]
 - 001s = iopcode: k4/k20 + stack + op4 = opcode with 4-bit/20-bit signed data [2]
 - 011s = literal: k12/k28 = 12-bit or 28-bit signed literal
 - 100s = jump: k12/k28 = signed PC displacement
@@ -56,9 +56,9 @@ Stacks are kept in data memory. Stack pointers are registers. The top of the dat
 - 110s = ajump: k12/k28 = absolute PC 
 - 111s = acall: k12/k28 = absolute PC 
 
-The *s* bit indicates instruction size. If '1', 16-bit immediate data follows. This covers most literals. Extremely large literals can be formed by compiling 28-bit literal and an additional *xlit* opcode (0x2XXX group) to shift in the remaining 4 bits.
+The *s* bit indicates instruction size. If '1', 16-bit immediate data follows. This covers most literals. Extremely large literals can be formed by compiling 28-bit literal and an additional *xlit* opcode to shift in the remaining 4 bits.
 
-An MCU implementation can use 1 or 2 multi-way jumps to decode instructions.
+The assembler uses blank delimited tokens to assemble the instructions. Tokens are looked up in a wordlist and executed, or converted to a number. The token names are listed below:
 
 ### \[1]: 
 If the *ret* bit is set, a return is executed with the opcode. With a hardware implementation, the return would be initiated first (PC popped) and then the instruction executed while the branch is in progress. The VM should do it this way. 
@@ -67,9 +67,15 @@ The 4-bit *stack* field (one pair each for data and return stacks) tell the hard
 
 - 00 = nothing to do
 - 01 = push T or R to the data/return stack (mem[--SP/RP]) before/upon executing the instruction.
-- 11 = pop T or R from the data stack (mem[SP/RP++]) after/upon executing the instruction.
+- 10 = pop T or R from the data stack (mem[SP/RP++]) after/upon executing the instruction.
 
-The k[1:0] bits may be used to address two instances of TOS. There are two instances of A.
+Tokens for the above: `ret` `dup` `push` `drop` `pop` 
+
+The k[1:0] bits may be used to address two instances of TOS. There are two instances of A. The default k is 0. 
+
+Tokens that change k are: `s1` `d1`
+
+Disassembly order: ret, pushes, k, opcode, pops
 
 **op1=0** Load T[d] with a data source. k[1]=s, k[0]=d. The sources are:
 - `0` 2\*  Left shifted T[s].
@@ -77,14 +83,16 @@ The k[1:0] bits may be used to address two instances of TOS. There are two insta
 - `2` 2/  Right shifted T[s].
 - `3` ror  Right Right T[s].
 - `4` u2/  Right shifted T[s] (unsigned).
-- `5` cy  s=0: Carry out of last add or shift. s=1: R.
-- `6` cm  cm[A[s]]
-- `7` cm+  cm[A[s]++]
+- `5` cy@  s=0: Carry out of last add or shift.
+- `5` r  s=1: R.
+- `6` @c  cm[A[s]]
+- `7` @c+  cm[A[s]++]
 - `8` a  k[17:2]={0 or -1}: A[s], else user-defined.
-- `9` \*+  s=0: multiplication step. s=1: division step.
-- `A` dm  dm[A[s]]
-- `B` dm+  dm[A[s]++]
-- `C` add  T[s] + mem[SP]
+- `9` \*+  s=0: multiplication step.
+- `9` /+  s=1: division step.
+- `A` @  dm[A[s]]
+- `B` @+  dm[A[s]++]
+- `C` +  T[s] + mem[SP]
 - `D` &  T[s] & mem[SP]
 - `E` |  T[s] | mem[SP]
 - `F` ^  T[s] ^ mem[SP]
@@ -95,34 +103,36 @@ The k[1:0] bits may be used to address two instances of TOS. There are two insta
 - `2`
 - `3` 
 - `4` 
-- `5` cy/r  s=0: carry flag. s=1: R.
+- `5` cy!  d=0: carry flag. s=1: R.
+- `5` r!  d=0: carry flag. s=1: R.
 - `6` 
 - `7` 
-- `8` a  k[17:2]={0 or -1}: A[d], else user-defined.
-- `9` load mul/div registers.
-- `A` dm  dm[A[d]]
-- `B` dm+  dm[A[d]++]
+- `8` a!  k[17:2]={0 or -1}: A[d], else user-defined.
+- `9` ??? d=0: load mul registers.
+- `9` ??? d=1: load div registers.
+- `A` !  dm[A[d]]
+- `B` !+  dm[A[d]++]
 - `C` 
-- `D` up
-- `E` sp
-- `F` rp
+- `D` up!
+- `E` sp!
+- `F` rp!
 
 Note that you can't store to cm. Code memory storage is an OS function.
 
 ### \[2] 
 There are 16 iopcodes that take immediate data. They are:
-- `0` +lit  Add signed k to T[0]. {1+, 1-, CELL+, CHAR+}
-- `1` &lit  Bitwise-and signed k to T[0].
-- `2` |lit  Bitwise-or signed k to T[0].
-- `3` ^lit  Bitwise-xor signed k to T[0]. {INVERT}
-- `4` xlit  Shift T[0] left 4 places and add unsigned k.
-- `5` uplit  T[0] = user variable address UP + k. {UP@, USER variables}
-- `6` rplit  T[0] = local variable address RP + k. {RP@, local variables}
-- `7` split  T[0] = pick address SP + k. {SP@, PICK}
+- `0` +n  Add signed k to T[0]. {1+, 1-, CELL+, CHAR+}
+- `1` &n  Bitwise-and signed k to T[0].
+- `2` |n  Bitwise-or signed k to T[0].
+- `3` ^n  Bitwise-xor signed k to T[0]. {INVERT}
+- `4` xn  Shift T[0] left 4 places and add unsigned k.
+- `5` upn  T[0] = user variable address UP + k. {UP@, USER variables}
+- `6` rpn  T[0] = local variable address RP + k. {RP@, local variables}
+- `7` spn  T[0] = pick address SP + k. {SP@, PICK}
 - `8`
 - `9` 
-- `A` @lit  Fetch from data address k into T[0].
-- `B` !lit  Store T[0] to data address k.
+- `A` @n  Fetch from data address k into T[0].
+- `B` !n  Store T[0] to data address k.
 - `C` 0bran  Branch if T[0]=0 using displacement k.
 - `D` next  Branch if (--R)>=0 using displacement k. 
 - `E` -bran  Branch if T[0]<0 using displacement k.
