@@ -22,14 +22,14 @@ The token colors are assigned from a practical standpoint. The default color whe
 
 Keep in mind that tag attributes can have any 4-bit (for VT100 compatibility) background or foreground color, any font, bold, italic or underline. These are within the scope of the CSS. You need to know how to include the link to the CSS sheet in your HTML document. Trivial. However, the tag names must be established. On a light background, replace white with black. Other colors are the same.
 
-**Tag** | **Syntax Element** | **Color** | **BWstyle**
------|:------------------|:--------|:----------
-int | Interpret          | White   | plain 
-com | Compile            | Green   | italic
-def | Define             | Red     | bold
-asm | Inline Assembler   | Cyan    | bold+italic
-doc | Comment            | Blue    | underline
-tok | Store token text   | Magenta | italic+underline
+**Tag** | **Syntax Element** | **Color** | **BWstyle** | **Key**
+-----|:------------------|:--------|:------------------|:-------
+int | Interpret          | White   | plain             | F2
+com | Compile            | Green   | italic            | F4
+def | Define             | Red     | bold              | F7
+asm | Inline Assembler   | Cyan    | bold+italic       | F8
+doc | Comment            | Blue    | underline         | F9
+tok | Store token text   | Magenta | italic+underline  | F10
 
 The IDE should remember the name of the project file. It's this file that gets loaded upon reload. Everything is compiled from source instantly. In the beginning, colorForth knows nothing. It doesn't know what DUP means. You load all that in the form of macros. Granted, macros don't leverage analytical compilers. Stack computers solve that problem. A virtual stack computer is fine as an execution target. Also, there's nothing to stop you from defining primitives in the host using Javascript. Compilation semantics are a host function not limited to "call/jump".
 
