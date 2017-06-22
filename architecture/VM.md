@@ -4,8 +4,7 @@ The Beforth VM is a small bytecode interpreter that is equally at home on the de
 
 The VM has the following system features:
 - 32-bit or 16-bit cell size.
-- 16-bit address units.
-- Data memory is even-address aligned if 32-bit system.
+- Byte addressed.
 - Little endian.
 
 ## VM memory model
@@ -41,7 +40,7 @@ The first USER variable of the task is FOLLOWER. FOLLOWER is placed first becaus
 - TOS: -> top of saved stack                   
 - Handler: catch/throw handler     
 
-Octet handling is beyond the scope of the VM. In hardware, there's no reason for C@ etc. That's a software thing. Implement your own byte space. Using bytes for flags is a common shortcut. Use ON and OFF to manage bits in a bit space. SRAM isn't cheap. Granted, many streams are byte-oriented and you need to parse them. Octet support in hardware should not be a dependency.
+Octet handling is optional the VM. You can implement your own byte space. Using bytes for flags is a common shortcut. Use ON and OFF to manage bits in a bit space. SRAM isn't cheap. Granted, many streams are byte-oriented and you need to parse them. Octet support in hardware should not be a dependency. But, the VM can have it.
 
 ## VM metal
 Stacks are kept in data memory. Stack pointers are registers. The top of the data stack is in a register, as with most Forths. Other registers are SP, RP and UP. In a hardware implementation, stack operations take one clock cycle because data memory is rather small: a few kB. The CPU is a Harvard machine. The main rationale for the classic stack setup is easy context switching in multitasking.
@@ -60,7 +59,9 @@ The *s* bit indicates instruction size. If '1', 16-bit immediate data follows. T
 
 The assembler uses blank delimited tokens to assemble the instructions. Tokens are looked up in a wordlist and executed, or converted to a number. The token names are listed below:
 
-### \[1]: 
+### \[1]:
+The long immediate (s=1) produces a 18-bit k with the upper 14 bits equal to the ret bit. k[17:2] may be used for special modifiers. For example, memory fetch and store can represent a type. 
+
 If the *ret* bit is set, a return is executed with the opcode. With a hardware implementation, the return would be initiated first (PC popped) and then the instruction executed while the branch is in progress. The VM should do it this way. 
 
 The 4-bit *stack* field (one pair each for data and return stacks) tell the hardware what kind of push operations go with this opcode:
@@ -85,13 +86,13 @@ Disassembly order: ret, pushes, k, opcode, pops
 - `4` u2/  Right shifted T[s] (unsigned).
 - `5` cy@  s=0: Carry out of last add or shift.
 - `5` r  s=1: R.
-- `6` @c  cm[A[s]]
-- `7` @c+  cm[A[s]++]
+- `6` @c  cm[A[s]], optional type = k[4:3]: {cell, short, byte, cell}
+- `7` @c+  cm[A[s]++], optional type = k[4:3]: {cell, short, byte, cell}
 - `8` a  k[17:2]={0 or -1}: A[s], else user-defined.
 - `9` \*+  s=0: multiplication step.
 - `9` /+  s=1: division step.
-- `A` @  dm[A[s]]
-- `B` @+  dm[A[s]++]
+- `A` @  dm[A[s]], optional type = k[4:3]: {cell, short, byte, cell}
+- `B` @+  dm[A[s]++], optional type = k[4:3]: {cell, short, byte, cell}
 - `C` +  T[s] + mem[SP]
 - `D` &  T[s] & mem[SP]
 - `E` |  T[s] | mem[SP]
@@ -110,8 +111,8 @@ Disassembly order: ret, pushes, k, opcode, pops
 - `8` a!  k[17:2]={0 or -1}: A[d], else user-defined.
 - `9` ??? d=0: load mul registers.
 - `9` ??? d=1: load div registers.
-- `A` !  dm[A[d]]
-- `B` !+  dm[A[d]++]
+- `A` !  dm[A[d]], optional type = k[4:3]: {cell, short, byte, cell}
+- `B` !+  dm[A[d]++], optional type = k[4:3]: {cell, short, byte, cell}
 - `C` 
 - `D` up!
 - `E` sp!
@@ -131,8 +132,8 @@ There are 16 iopcodes that take immediate data. They are:
 - `7` spn  T[0] = pick address SP + k. {SP@, PICK}
 - `8`
 - `9` 
-- `A` @n  Fetch from data address k into T[0].
-- `B` !n  Store T[0] to data address k.
+- `A` @n  Fetch cell from data address k into T[0].
+- `B` !n  Store cell T[0] to data address k.
 - `C` 0bran  Branch if T[0]=0 using displacement k.
 - `D` next  Branch if (--R)>=0 using displacement k. 
 - `E` -bran  Branch if T[0]<0 using displacement k.
