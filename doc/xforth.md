@@ -3,7 +3,7 @@
 By *Brad Eckert*, `hwfwguy/at\gmail.com`
 ## Memory Model
 
-The memory model of the Forth virtual machine (in tha ANS/ISO standard) consists of three memory spaces: code, data and header. The goal of this model is to run comfortably in an embedded system. This doesn't mean cross compilation, however. Computers are very fast these days. The host PC can run an instruction set simulator of the target CPU to execute the code the compiler uses. This avoids the quirks of cross compilation to simplify language extension. It also simplifies modeling of the embedded system in the PC environment.
+The memory model of the Forth virtual machine (in the ANS/ISO standard) consists of three memory spaces: code, data and header. The goal of the proposed model is to run comfortably in an embedded system. This doesn't mean cross compilation, however. Computers are very fast these days. The host PC can run an instruction set simulator of the target CPU to execute the code the compiler uses. This avoids the quirks of cross compilation to simplify language extension. It also simplifies modeling of the embedded system in the PC environment.
 
 Embedded systems have memory differences that need to be taken into account:
 
