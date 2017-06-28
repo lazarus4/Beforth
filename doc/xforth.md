@@ -11,13 +11,13 @@ Code memory is usually read-only at run time. When hosted on a PC, writes to cod
 
 Data memory is initialized at startup. In terms of die area, RAM is ten times as costly as flash memory. That means the RAM size will be quite manageable in an embedded system (assuming absence of DRAM). There's no need to distinguish between initialized and uninitialized data (IDATA vs UDATA in cross compiler parlance). It's all IDATA. The implementation clears all of RAM, then loads selected runs of cells with table data from ROM. 
 
-When compiling data to the dictionary with *comma*, you can use the ROM and RAM keywords to switch between the memory spaces you're compiling to. There are, however, multiple instances of the RAM and ROM pointers to support multiple sections.
-
-
+When compiling data to the dictionary with *comma*, you can use the ROM and RAM keywords to switch between the memory spaces you're compiling to. There are, however, multiple instances of the RAM and ROM pointers to support multiple sections. Some sections make it into the embedded system, some don't. It depends what functionality is needed. You can visualize the sections as:
+![Memory Spaces Illustration](https://github.com/lazarus4/Beforth/raw/master/doc/memspaces.png)
 
 
 
 ## Interpreting
+
 The traditional INTERPRET loop in Forth uses FIND as part of an outer interpreter. FIND returns a single *xt*, an execution token that can be used for compilation but not in a straightforward way. One solution is to have a dual-xt system. The header (in name space) contains an xt for execution and an xt for compilation. A new dialect of Forth, called DXT (for dual XT) is proposed. This can be a derivative of the 2012x Forth standard. Applications written in ANS can run on DXT with a compatibility layer written in DXT. Applications written in DXT may run on an ANS system with a non-standard compatibility layer. The DXT version of INTERPRET uses a version of FIND that takes a string token and finds its name token, *nt*, a namespace reference that easily converts to the appropriate xt.
 
 - `PARSE-NAME`  ( "{spaces}name[space]" -- c-addr u )  *2012:* Skip leading space delimiters. Parse name delimited by a space.
