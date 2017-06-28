@@ -14,10 +14,11 @@ Data memory is initialized at startup. In terms of die area, RAM is ten times as
 When compiling data to the dictionary with *comma*, you can use the ROM and RAM keywords to switch between the memory spaces you're compiling to. There are, however, multiple instances of the RAM and ROM pointers to support multiple sections. Some sections make it into the embedded system, some don't. It depends what functionality is needed. You can visualize the sections as:
 ![Memory Spaces Illustration](https://github.com/lazarus4/Beforth/raw/master/doc/memspaces01.png)
 
+The implementation doesn't need scopes to handle the difference between the embedded target and the host. The simulated CPU is the host. Only the sections needed by the application are copied in the remote MCU. Code may be run on the remote MCU through a thin client debugger, which is an alteration of the interpreter that executes words over a communication link after looking them up locally.
 
 ## Interpreting
 
-The traditional INTERPRET loop in Forth uses FIND as part of an outer interpreter. FIND returns a single *xt*, an execution token that can be used for compilation but not in a straightforward way. One solution is to have a dual-xt system. The header (in name space) contains an xt for execution and an xt for compilation. A new dialect of Forth, called DXT (for dual XT) is proposed. This can be a derivative of the 2012x Forth standard. Applications written in ANS can run on DXT with a compatibility layer written in DXT. Applications written in DXT may run on an ANS system with a non-standard compatibility layer. The DXT version of INTERPRET uses a version of FIND that takes a string token and finds its name token, *nt*, a namespace reference that easily converts to the appropriate xt.
+The traditional INTERPRET loop in Forth uses FIND as part of an outer interpreter. FIND returns a single *xt*, an execution token that can be used for compilation but not in a straightforward way. One solution is to have a dual-xt system, first proposed by Anton Ertl and used by gForth. The header (in name space) contains an xt for execution and an xt for compilation. A new dialect of Forth, called DXT (for dual XT) is proposed. This can be a derivative of the 2012x Forth standard. Applications written in ANS can run on DXT with a compatibility layer written in DXT. Applications written in DXT may run on an ANS system with a non-standard compatibility layer. The DXT version of INTERPRET uses a version of FIND that takes a string token and finds its name token, *nt*, a namespace reference that easily converts to the appropriate xt.
 
 - `PARSE-NAME`  ( "{spaces}name[space]" -- c-addr u )  *2012:* Skip leading space delimiters. Parse name delimited by a space.
 - `NAME>COMP`  ( nt -- xt )  xt is the compilation token for the word nt.
@@ -42,6 +43,7 @@ VARIABLE NT
 ```
 IMMEDIATE works by copying the last word's xtE to its xtC.
 
+In a dual-xt system, the default execution and compilation semantics of a colon definition are to execute the word or compile a call to it. Various other kinds of created items, such as VARIABLE and EQU, will have different default semantics. 
 
 ## Header structures
 
