@@ -15,7 +15,7 @@ var CM = new Int16Array(codeMemSize); // Code space
 var DM = new Int32Array(dataMemSize); // Data space
 var RM = new Int32Array(regsMemSize); // Registers for VM
 ```
-The fetch and store primitives may implement the address ranges that your hardware prefers. For example, if code starts at 0x8000 in your real life MCU, address 0x8000 maps to CM[0]. Code fetch and data fetch are different primitives. Code fetch may use external SPI flash for XIP code, for example. 
+Code fetch and data fetch are different primitives. Code fetch may use external SPI flash for XIP code, for example. In a 16-bit system, there can be up to 64K bytes each of code and data space. Both start at 0.
 
 The *undo* buffer packs address and data space into a single 32-bit token for undo operations. The upper two MSBs are the type bits: {CM, DM, RM, spare}. The single stepper/unstepper uses a 16-byte undo structure {flags, token, old, new}. The token for program counter (PC), for example, could be RM[0]. The VM registers are:
 
@@ -28,8 +28,6 @@ The *undo* buffer packs address and data space into a single 32-bit token for un
 - RM[6] = `SP` data stack pointer.
 - RM[7] = `RP` return stack pointer.
 
-Execution tokens, for example used by `EXECUTE ( xt -- )`, are either VM opcodes or addresses in code space. EXECUTE treates negative numbers as VM opcodes. For example, the EXECUTE instruction does a 1s complement negate (~xt) to get the opcode to execute. An xt of -1 executes opcode 0.
-
 The way memory is used is central to the VM. The UP register points to a Task Control Block (TCB), a small buffer in RAM that's used by a round-robin cooperative multitasker.
 ![Stacks Illustration](https://github.com/lazarus4/Beforth/raw/master/architecture/stacks_01.png)
 The first USER variable of the task is FOLLOWER. FOLLOWER is placed first because it's a data address, which is a negative number. If the return stack underflows, the negative return address generates an exception in the VM. The USER variables in task space are:
@@ -39,8 +37,6 @@ The first USER variable of the task is FOLLOWER. FOLLOWER is placed first becaus
 - SP0: initial data stack pointer        
 - TOS: -> top of saved stack                   
 - Handler: catch/throw handler     
-
-Octet handling is optional the VM. You can implement your own byte space. Using bytes for flags is a common shortcut. Use ON and OFF to manage bits in a bit space. SRAM isn't cheap. Granted, many streams are byte-oriented and you need to parse them. Octet support in hardware should not be a dependency. But, the VM can have it.
 
 ## VM metal
 Stacks are kept in data memory. Stack pointers are registers. The top of the data stack is in a register, as with most Forths. Other registers are SP, RP and UP. In a hardware implementation, stack operations take one clock cycle because data memory is rather small: a few kB. The CPU is a Harvard machine. The main rationale for the classic stack setup is easy context switching in multitasking.
@@ -79,21 +75,21 @@ Tokens that change k are: `s1` `d1`
 Disassembly order: ret, pushes, k, opcode, pops
 
 **op1=0** Load T[d] with a data source. k[1]=s, k[0]=d. The sources are:
-- `0` 2\*  Left shifted T[s].
+- `0` shl  Left shifted T[s].
 - `1` rol  Rotate Left T[s].
-- `2` 2/  Right shifted T[s].
+- `2` asr  Right shifted T[s].
 - `3` ror  Right Right T[s].
-- `4` u2/  Right shifted T[s] (unsigned).
+- `4` shr  Right shifted T[s] (unsigned).
 - `5` cy@  s=0: Carry out of last add or shift.
 - `5` r  s=1: R.
-- `6` @c  cm[A[s]], optional type = k[4:3]: {cell, short, byte, cell}
-- `7` @c+  cm[A[s]++], optional type = k[4:3]: {cell, short, byte, cell}
+- `6` @ac  cm[A[s]], optional type = k[4:3]: {cell, short, byte, cell}
+- `7` @ac+  cm[A[s]++], optional type = k[4:3]: {cell, short, byte, cell}
 - `8` a  k[17:2]={0 or -1}: A[s], else user-defined.
 - `9` \*+  s=0: multiplication step.
 - `9` /+  s=1: division step.
-- `A` @  dm[A[s]], optional type = k[4:3]: {cell, short, byte, cell}
-- `B` @+  dm[A[s]++], optional type = k[4:3]: {cell, short, byte, cell}
-- `C` +  T[s] + mem[SP]
+- `A` @a  dm[A[s]], optional type = k[4:3]: {cell, short, byte, cell}
+- `B` @a+  dm[A[s]++], optional type = k[4:3]: {cell, short, byte, cell}
+- `C` add  T[s] + mem[SP]
 - `D` &  T[s] & mem[SP]
 - `E` |  T[s] | mem[SP]
 - `F` ^  T[s] ^ mem[SP]
@@ -111,8 +107,8 @@ Disassembly order: ret, pushes, k, opcode, pops
 - `8` a!  k[17:2]={0 or -1}: A[d], else user-defined.
 - `9` ??? d=0: load mul registers.
 - `9` ??? d=1: load div registers.
-- `A` !  dm[A[d]], optional type = k[4:3]: {cell, short, byte, cell}
-- `B` !+  dm[A[d]++], optional type = k[4:3]: {cell, short, byte, cell}
+- `A` !a  dm[A[d]], optional type = k[4:3]: {cell, short, byte, cell}
+- `B` !a+  dm[A[d]++], optional type = k[4:3]: {cell, short, byte, cell}
 - `C` 
 - `D` up!
 - `E` sp!
