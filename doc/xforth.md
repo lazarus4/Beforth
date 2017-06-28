@@ -3,17 +3,16 @@
 By *Brad Eckert*, `hwfwguy/at\gmail.com`
 ## Memory Model
 
-The memory model of the Forth virtual machine (in the ANS/ISO standard) consists of three memory spaces: code, data and header. The goal of the proposed model is to run comfortably in an embedded system. This doesn't mean cross compilation, however. Computers are very fast these days. The host PC can run an instruction set simulator of the target CPU to execute the code the compiler uses. This avoids the quirks of cross compilation to simplify language extension. It also simplifies modeling of the embedded system in the PC environment.
+The memory model of the Forth virtual machine (in the ANS/ISO standard) consists of three memory spaces: code, data and head. The goal of the proposed model is to run comfortably in an embedded system. This doesn't mean cross compilation, however. Computers are very fast these days. The host PC can run an instruction set simulator of the target CPU to execute the code the compiler uses. This avoids the quirks of cross compilation to simplify language extension. It also simplifies modeling of the embedded system in the PC environment.
 
 Embedded systems have memory differences that need to be taken into account:
 
-Code memory is usually read-only at run time. When hosted on a PC, writes to code space (a RAM image in the host) are allowed at compile time. Writes are not allowed at run time. That's a hardware dependency that involves flash programming. Header space is a section of code space that may be included in or left out of the application.
+Code memory is usually read-only at run time. When hosted on a PC, writes to code space (a RAM image in the host) are allowed at compile time. Writes are not allowed at run time. That's a hardware dependency that involves flash programming. Compile time writes are restricted to changing '1' bits to '0' bits. Head space is a section of code space that may be included in or left out of the application.
 
 Data memory is initialized at startup. In terms of die area, RAM is ten times as costly as flash memory. That means the RAM size will be quite manageable in an embedded system (assuming absence of DRAM). There's no need to distinguish between initialized and uninitialized data (IDATA vs UDATA in cross compiler parlance). It's all IDATA. The implementation clears all of RAM, then loads selected runs of cells with table data from ROM. 
 
 When compiling data to the dictionary with *comma*, you can use the ROM and RAM keywords to switch between the memory spaces you're compiling to. There are, however, multiple instances of the RAM and ROM pointers to support multiple sections. Some sections make it into the embedded system, some don't. It depends what functionality is needed. You can visualize the sections as:
 ![Memory Spaces Illustration](https://github.com/lazarus4/Beforth/raw/master/doc/memspaces01.png)
-
 
 
 ## Interpreting
