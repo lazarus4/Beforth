@@ -1,7 +1,23 @@
 # Forth model proposal
 
 By *Brad Eckert*, `hwfwguy/at\gmail.com`
+## Memory Model
 
+The memory model of the Forth virtual machine (in tha ANS/ISO standard) consists of three memory spaces: code, data and header. The goal of this model is to run comfortably in an embedded system. This doesn't mean cross compilation, however. Computers are very fast these days. The host PC can run an instruction set simulator of the target CPU to execute the code the compiler uses. This avoids the quirks of cross compilation to simplify language extension. It also simplifies modeling of the embedded system in the PC environment.
+
+Embedded systems have memory differences that need to be taken into account:
+
+Code memory is usually read-only at run time. When hosted on a PC, writes to code space (a RAM image in the host) are allowed at compile time. Writes are not allowed at run time. That's a hardware dependency that involves flash programming. Header space is a section of code space that may be included in or left out of the application.
+
+Data memory is initialized at startup. In terms of die area, RAM is ten times as costly as flash memory. That means the RAM size will be quite manageable in an embedded system (assuming absence of DRAM). There's no need to distinguish between initialized and uninitialized data (IDATA vs UDATA in cross compiler parlance). It's all IDATA. The implementation clears all of RAM, then loads selected runs of cells with table data from ROM. 
+
+When compiling data to the dictionary with *comma*, you can use the ROM and RAM keywords to switch between the memory spaces you're compiling to. There are, however, multiple instances of the RAM and ROM pointers to support multiple sections.
+
+
+
+
+
+## Interpreting
 The traditional INTERPRET loop in Forth uses FIND as part of an outer interpreter. FIND returns a single *xt*, an execution token that can be used for compilation but not in a straightforward way. One solution is to have a dual-xt system. The header (in name space) contains an xt for execution and an xt for compilation. A new dialect of Forth, called DXT (for dual XT) is proposed. This can be a derivative of the 2012x Forth standard. Applications written in ANS can run on DXT with a compatibility layer written in DXT. Applications written in DXT may run on an ANS system with a non-standard compatibility layer. The DXT version of INTERPRET uses a version of FIND that takes a string token and finds its name token, *nt*, a namespace reference that easily converts to the appropriate xt.
 
 - `PARSE-NAME`  ( "{spaces}name[space]" -- c-addr u )  *2012:* Skip leading space delimiters. Parse name delimited by a space.
