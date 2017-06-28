@@ -12,7 +12,7 @@ Code memory is usually read-only at run time. When hosted on a PC, writes to cod
 Data memory is initialized at startup. In terms of die area, RAM is ten times as costly as flash memory. That means the RAM size will be quite manageable in an embedded system (assuming absence of DRAM). There's no need to distinguish between initialized and uninitialized data (IDATA vs UDATA in cross compiler parlance). It's all IDATA. The implementation clears all of RAM, then loads selected runs of cells with table data from ROM. 
 
 When compiling data to the dictionary with *comma*, you can use the ROM and RAM keywords to switch between the memory spaces you're compiling to. There are, however, multiple instances of the RAM and ROM pointers to support multiple sections. Some sections make it into the embedded system, some don't. It depends what functionality is needed. You can visualize the sections as:
-![Memory Spaces Illustration](https://github.com/lazarus4/Beforth/raw/master/doc/memspaces.png)
+![Memory Spaces Illustration](https://github.com/lazarus4/Beforth/raw/master/doc/memspaces01.png)
 
 
 
