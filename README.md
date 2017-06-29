@@ -6,18 +6,14 @@
 - Don't yet have a VM.
 ## Running beForth
 1. Download the archive and unzip it to a local folder on your computer. 
-2. Launsh beForth.html in a web browser.
+2. Launch beForth.html in a web browser.
 ### To Do
 - Handle keyboard input (beKey.js)
 - Allow switching between Forth and JS input
 - Implement the interpreters
 - Implement the VM
 ## Rationale
-Beforth is a colorForth. That means the source code consists of tag-delimited tokens. Not blank-delimited. The loader is crazy simple: Pull in tokens and handle them according to their tag, until the input is exhausted.
-
-The first thing a normal person will think upon seeing a colorForth is *What's the point?*. If you're going to write Forth applications, why not use ANS Forth? Well, there's a very good reason. It's to complete the circle, because Chuck loved Forth. Forth gave to us. This is how we give back. Forth is a great discipline but a lousy devotion. Chuck's devotion made him blind. That's true love. True love is a good enough reason to build applications in a tagged Forth. 
-
-What will follow is improved productivity, if done right. Chuck proved the concept.
+Beforth is an ANS-like (maybe ANS compliant) Forth for embedded systems development. I want a good tool that I can give away.
 
 ## About Forth
 Forth, the computer language, was created for programming embedded and real-time applications. It was also used widely in the 80s and 90s to create desktop applications. Today, a small number of Forth experts still use it in embedded systems, with great results in terms of productivity and product quality. In today's era of code bloat, the "Keep It Simple" philosophy is more important than ever. Computer programming as an art form still matters. Forth holds a unique position in *KISS* space.
@@ -39,10 +35,12 @@ A Forth implementation should have a pretty face and be heavily instrumented. Be
 
 1. SciTE. Found it impenetrable.
 2. NotePad++. An add-on DLL was feasible but hacking the GUI was too much.
-3. Visual Studio Code. Bloated, not the kind of debugger I want.
+3. Visual Studio Code. Bloated, and the debugger is not reversible.
 4. Web Browser. ACE is a good editor.
 
 So, I settled on option 4. Search engines answer most questions about the Javascript languages and open source tools (found in jsTools folder). Choosing a terminal was painful. I finally settled on xterm after not getting past scoping problems with JQuery Terminal. So, I have to implement my own buffer editor and history buffer. ACE is good, but not tiny. There are other editors.
+
+Your web browser is like a really mean cat: very protective of its sandbox. That means you can't write to the local file system even though you are running from it exclusively. However, you do get local storage. On my machine, for example, the Opera browser stores web site data to C:\Users\Brad\AppData\Roaming\Opera Software\Opera Stable\Local Storage in a SQL file. You can use a SQL viewer to see what is being left in temporary storage.
 
 ## Why Beforth?
 Be the Forth. Well okay, the Beforth name could also come from the originator's initials (Brad Eckert), but "Be the Forth" is so much more Zen. It's all about having fun. Forth is supposed to be fun. Programming is supposed to be fun. A Forth system should teach you what good Forth looks like and it should help you easily remember and explore aspects of the system so that your memory only has to be "sharp enough".
