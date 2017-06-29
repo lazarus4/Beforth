@@ -40,7 +40,11 @@ A Forth implementation should have a pretty face and be heavily instrumented. Be
 
 So, I settled on option 4. Search engines answer most questions about the Javascript languages and open source tools (found in jsTools folder). Choosing a terminal was painful. I finally settled on xterm after not getting past scoping problems with JQuery Terminal. So, I have to implement my own buffer editor and history buffer. ACE is good, but not tiny. There are other editors.
 
-Your web browser is like a really mean cat: very protective of its sandbox. That means you can't write to the local file system even though you are running from it exclusively. However, you do get local storage. On my machine, for example, the Opera browser stores web site data to C:\Users\Brad\AppData\Roaming\Opera Software\Opera Stable\Local Storage in a SQL file. You can use a SQL viewer to see what is being left in temporary storage.
+Your web browser is like a really mean cat: very protective of its sandbox. That means you can't write to the local file system even though you are running from it exclusively. However, you do get local storage. On my machine, for example, the browser stores sandboxxed data (in SQL 3 format) to:
+- C:\Users\Brad\AppData\Roaming\Opera Software\Opera Stable\Local Storage 
+- C:\Users\Brad\AppData\Local\Google\Chrome\User Data\Default\Local Storage
+
+You can use a SQL viewer to see what is being put in "temporary" storage.
 
 ## Why Beforth?
 Be the Forth. Well okay, the Beforth name could also come from the originator's initials (Brad Eckert), but "Be the Forth" is so much more Zen. It's all about having fun. Forth is supposed to be fun. Programming is supposed to be fun. A Forth system should teach you what good Forth looks like and it should help you easily remember and explore aspects of the system so that your memory only has to be "sharp enough".
