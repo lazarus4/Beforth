@@ -1,6 +1,6 @@
 # Beforth
 ## Status: preliminary
-- Have an IDE window with multiple panes. But, client-side Javascript doesn't save files. Oops.
+- Have an IDE window with multiple panes. 
 - Memory model is set up for a VM and header structures.
 - Search order, find and add-header are working.
 - Don't yet have a VM.
@@ -37,15 +37,13 @@ A Forth implementation should have a pretty face and be heavily instrumented. Be
 2. NotePad++. An add-on DLL was feasible but hacking the GUI was too much.
 3. Visual Studio Code. Bloated, and the debugger is not reversible.
 4. Web Browser. ACE is a good editor. This breed of cat is overprotective of its sandbox.
-5. wxWidgets, a cross-platform IDE. It has a Scintilla editor widget and a terminal widget.
+5. QT or wxWidgets, cross-platform IDEs. They have a Scintilla editor widget and a terminal widget.
 
-I went with option 4 until I figured out that reading and saving files directly was going to be a major ordeal.
+Mostly it's a choice between a difficult sandbox and bloatware. I downloaded wxWidgets and MinGW. wxWidgets spent a good long time compiling and quit with an error. Not awe-inspiring. I tried QT Creator. It created and built an example program. Okay, but where's the executable?
 
-Option 5 may be better. I'll might try running a node file server locally before I give up on JS. In the mean time, I'll play around with wxWidgets so see if I can make a useable API. It should produce a clean GUI that runs on Windows, Mac or Linux. 
+The browser sandbox can be dealt with. It should be easy to import and export tarballs of projects for archival purposes. Maybe later on there can be integration with a repository. Client side Javascript produces pressure for remote file storage, so that should become more prevalent. So, maybe I'll stick with the mean cat for a while.
 
 Option 4 is nice. Search engines answer most questions about the Javascript languages and open source tools (found in jsTools folder). Choosing a terminal was painful. I finally settled on xterm after not getting past scoping problems with JQuery Terminal. So, I have to implement my own buffer editor and history buffer. ACE is good, but not tiny. There are other editors.
-
-Your web browser is like a really mean cat: very protective of its sandbox. That means you can't write to the local file system even if you are running from it exclusively. However, you do get local storage. It's not the kind of storage you drag and drop, etc.
 
 ## Why Beforth?
 Be the Forth. Well okay, the Beforth name could also come from the originator's initials (Brad Eckert), but "Be the Forth" is so much more Zen. It's all about having fun. Forth is supposed to be fun. Programming is supposed to be fun. A Forth system should teach you what good Forth looks like and it should help you easily remember and explore aspects of the system so that your memory only has to be "sharp enough".
