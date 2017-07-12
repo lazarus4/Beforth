@@ -2,7 +2,7 @@
 
 The Beforth VM is a small ISS (instruction set simulator) that implements a stack computer. This ISA can be interpreted in real time on an MCU, PC, or gates (VHDL/Verilog). This provides a high semantic density, simple compiler, and reasonably high speed. Fast ISS is a matter of minimizing the complexity of decoding the ISA in software. The essential parts of the runtime system are contained in the VM and optional compiler extensions are added in a way that allows the Forth and the user application to be ported over to an MCU or FPGA. 
 
-The Harvard architecture of the VM uses a block of RAM for data and stack space, and a block of ROM for code space. Running code in an ISS isn't necessarily slow. Depending on the implementation, you can eliminate cache misses. That does a lot to close the gap between it and native bloatware.
+The Harvard architecture of the VM uses a block of RAM for data and stack space, and a block of ROM for code space. Running code in an ISS isn't necessarily slow. Depending on the implementation, you can eliminate cache misses. That does a lot to close the gap between it and native bloatware. In an FPGA implementation, you could simulate async read by clocking BRAM at double clock speed and keeping the data path from BRAM free of delays.
 
 The VM has the following system features:
 - 32-bit or 16-bit cell size.
@@ -47,8 +47,8 @@ Stacks are kept in data memory. Stack pointers are registers. The top of the dat
 
 Typical Forth systems are dominated by calls, returns and literals. To facilitate tail recursion, jumps and calls use similar encoding.
 
-- 000s = opcode: ret + op1 + k2/k18 + stack + op4 = 2-bit/18-bit literal, 5-bit opcode, stack operation, and return bit [1]
-- 001s = iopcode: k4/k20 + stack + op4 = opcode with 4-bit/20-bit signed data [2]
+- 000s = opcode: k2/k18 + ret + op1 + op4 + stack = 2-bit/18-bit literal, 5-bit opcode, stack operation, and return bit [1]
+- 001s = iopcode: k4/k20 + op4 + stack = opcode with 4-bit/20-bit signed data [2]
 - 011s = literal: k12/k28 = 12-bit or 28-bit signed literal
 - 100s = jump: k12/k28 = signed PC displacement
 - 101s = call: k12/k28 = signed PC displacement
