@@ -124,6 +124,8 @@ There are two instances of the TOS, like a two-headed snake. The default is T[0]
 
 Note that you can't store to cm. Code memory storage is an OS function.
 
+Multiplication is done with a `*+` step, which is a fractional multiply (multiplier range = 0 to 1).
+
 ### \[2] 
 There are 16 iopcodes that take immediate data. They are:
 - `0` **+#**  Add signed k to T[0]. {1+, 1-, CELL+, CHAR+}
@@ -145,7 +147,7 @@ There are 16 iopcodes that take immediate data. They are:
 
 Syscall functions are in a host function array. All others are hard coded in the VM.
 
-Multiplication is done with a `*+` step, which is a fractional multiply (multiplier range = 0 to 1).
+Opcodes 5 thru 7 store to T instead of A for the benefit of the multitasker.
 
 ## Usage
 The basic Forth system is designed as a kernel that can run stand-alone in an embedded system. In other words, the code image compiled by the C can conceivably be copied over to a static ROM image and run in an embedded system. The VM is simple enough to port to the embedded system, so it doesn't need any C. Essentially, Beforth is an embedded system simulator with the cross compiler written in C.
