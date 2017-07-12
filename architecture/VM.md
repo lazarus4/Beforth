@@ -80,7 +80,7 @@ Tokens that change k are: `s1` `d1`
 
 Disassembly order: ret, pushes, k, opcode, pops
 
-There are two instances of the TOS, like a two-headed snake. The default is T[0], but T[1] is available in cases where it wouldn't add any execution delay. A common problem in Forth is having a little extra state and not having a handy place to stash it. The only downside is with interrupts, which tend to be troublesome from a verification standpoint. Forth does just fine without interrupts. A useful way of handling interrupts is to tweak the RET instruction. If an "interrupt" is pending, jump to the interrupt code instead of popping the return address. That's outside the scope of the VM. Conceptually, it's like the Forth technique of waking a clean-up task after an ISR, with the low level part expected to be handled in hardware.
+There are two instances of the TOS, like a two-headed snake. The default is T[0], but T[1] is available in cases where it wouldn't add any execution delay. A common problem in Forth is having a little extra state and not having a handy place to stash it. The only downside is with interrupts (possibly more state to save), which tend to be troublesome from a verification standpoint. Forth does just fine without interrupts. A useful way of handling interrupts is to tweak the RET instruction. If an "interrupt" is pending, jump to the interrupt code instead of popping the return address. That's outside the scope of the VM. Conceptually, it's like the Forth technique of waking a clean-up task after an ISR, with the low level part expected to be handled in hardware.
 
 **op1=0** Load T[d] with a data source. k[1]=s, k[0]=d. The sources are:
 - `0` **shl**  Left shifted T[s].
