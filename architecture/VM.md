@@ -24,10 +24,11 @@ The *undo* buffer packs address and data space into a single 32-bit token for un
 - RM[1] = `FLAGS` carry-out flag from +. May contain other flags.
 - RM[2] = `T0` top of data stack.
 - RM[3] = `T1` aux top of data stack.
-- RM[4] = `R` top of return stack.
-- RM[5] = `UP` user pointer.
-- RM[6] = `SP` data stack pointer.
-- RM[7] = `RP` return stack pointer.
+- RM[4] = `N` next on data stack stack.
+- RM[5] = `R` top of return stack.
+- RM[6] = `UP` user pointer.
+- RM[7] = `SP` data stack pointer.
+- RM[8] = `RP` return stack pointer.
 
 The way memory is used is central to the VM. The UP register points to a Task Control Block (TCB), a small buffer in RAM that's used by a round-robin cooperative multitasker.
 ![Stacks Illustration](https://github.com/lazarus4/Beforth/raw/master/architecture/stacks_01.png)
@@ -42,7 +43,9 @@ The first USER variable of the task is FOLLOWER. FOLLOWER is placed first becaus
 ## VM metal
 Stacks are kept in data memory. Stack pointers are registers. The top of the data stack is in a register, as with most Forths. Other registers are SP, RP and UP. In a hardware implementation, stack operations take one clock cycle because data memory is rather small: a few kB. The CPU is a Harvard machine. The main rationale for the classic stack setup is easy context switching in multitasking.
 
-16-bit instructions strike a good balance between size and speed. An MCU implementation can use 1 or 2 multi-way jumps to decode instructions. The VM uses a tight loop that fetches the next 16-bit instruction from CM and executes it. The instruction encoding allows for compact calls and jumps. Taking a hardware-friendly view of the VM, the four MSBs of the instruction are decoded into four instruction groups:
+16-bit instructions strike a good balance between size and speed. An MCU implementation can use 1 or 2 multi-way jumps to decode instructions. The VM uses a tight loop that fetches the next 16-bit instruction from CM and executes it. The instruction encoding allows for compact calls and jumps. Taking a hardware-friendly view of the VM, the four MSBs of the instruction are decoded into eight instruction groups. 
+
+Typical Forth systems are dominated by calls, returns and literals. To facilitate tail recursion, jumps and calls use similar encoding.
 
 - 000s = opcode: ret + op1 + k2/k18 + stack + op4 = 2-bit/18-bit literal, 5-bit opcode, stack operation, and return bit [1]
 - 001s = iopcode: k4/k20 + stack + op4 = opcode with 4-bit/20-bit signed data [2]
@@ -52,36 +55,40 @@ Stacks are kept in data memory. Stack pointers are registers. The top of the dat
 - 110s = ajump: k12/k28 = absolute PC 
 - 111s = acall: k12/k28 = absolute PC 
 
-The *s* bit indicates instruction size. If '1', 16-bit immediate data follows. This covers most literals. Extremely large literals can be formed by compiling a 28-bit literal and an additional *xlit* opcode to shift in the remaining 4 bits.
+The *s* bit indicates instruction size. If '1', 16-bit immediate data follows. This covers most literals. Extremely large literals can be formed by compiling a 28-bit literal and an additional *x#* opcode to shift in the remaining 4 bits.
 
 The assembler uses blank delimited tokens to assemble the instructions. Tokens are looked up in a wordlist and executed, or converted to a number. The token names are listed below:
 
 ### \[1]:
 The long immediate (s=1) produces a 18-bit k with the upper 14 bits equal to the ret bit. k[17:2] may be used for special modifiers. For example, memory fetch and store can represent a type. 
 
-If the *ret* bit is set, a return is executed with the opcode. With a hardware implementation, the return would be initiated first (PC popped) and then the instruction executed while the branch is in progress. The VM should do it this way. 
+If the *ret* bit is set, a return is executed with the opcode. With a hardware implementation, the return would be initiated first (PC popped) and then the instruction executed while the branch is in progress. The VM should do it this way. When there are also pushes/pops included in the instruction (see *stack* field), the *ret* executes first, pushes execute next, and pops execute last.
+
+When the instruction executes a push, the instruction should assume it's executing at the same time as the push. That means using the SP value from before the push. No such accommodation is needed with the pop because it's post-decrementing.
 
 The 4-bit *stack* field (one pair each for data and return stacks) tell the hardware what kind of push operations go with this opcode:
 
 - 00 = nothing to do
-- 01 = push T or R to the data/return stack (mem[--SP/RP]) before/upon executing the instruction.
-- 10 = pop T or R from the data stack (mem[SP/RP++]) after/upon executing the instruction.
+- 01 = push T/N or R to the data/return stack (mem[--SP/RP]) before/upon executing the instruction.
+- 10 = pop T/N or R from the data stack (mem[SP/RP++]) after/upon executing the instruction.
 
 Tokens for the above: `ret` `dup` `push` `drop` `pop` 
 
-The k[1:0] bits may be used to address two instances of TOS. There are two instances of A. The default k is 0. 
+The k[1:0] bits may be used to address two instances of TOS. There are two instances of A, an address register used for fetch/store. The default k is 0. 
 
 Tokens that change k are: `s1` `d1`
 
 Disassembly order: ret, pushes, k, opcode, pops
 
+There are two instances of the TOS, like a two-headed snake. The default is T[0], but T[1] is available in cases where it wouldn't add any execution delay. A common problem in Forth is having a little extra state and not having a handy place to stash it. The only downside is with interrupts, which tend to be troublesome from a verification standpoint. Forth does just fine without interrupts. A useful way of handling interrupts is to tweak the RET instruction. If an "interrupt" is pending, jump to the interrupt code instead of popping the return address. That's outside the scope of the VM. Conceptually, it's like the Forth technique of waking a clean-up task after an ISR, with the low level part expected to be handled in hardware.
+
 **op1=0** Load T[d] with a data source. k[1]=s, k[0]=d. The sources are:
 - `0` shl  Left shifted T[s].
-- `1` rol  Rotate Left T[s].
+- `1` rol  Rotate Left T[s] through carry.
 - `2` asr  Right shifted T[s].
-- `3` ror  Right Right T[s].
-- `4` shr  Right shifted T[s] (unsigned).
-- `5` cy@  s=0: Carry out of last add or shift.
+- `3` ror  Right Right T[s] through carry.
+- `4` shr  Right shifted T[s], unsigned.
+- `5` n  s=0: N.
 - `5` r  s=1: R.
 - `6` @ac  cm[A[s]], optional type = k[4:3]: {cell, short, byte, cell}
 - `7` @ac+  cm[A[s]++], optional type = k[4:3]: {cell, short, byte, cell}
@@ -90,10 +97,10 @@ Disassembly order: ret, pushes, k, opcode, pops
 - `9` /+  s=1: division step.
 - `A` @a  dm[A[s]], optional type = k[4:3]: {cell, short, byte, cell}
 - `B` @a+  dm[A[s]++], optional type = k[4:3]: {cell, short, byte, cell}
-- `C` add  T[s] + mem[SP]
-- `D` &  T[s] & mem[SP]
-- `E` |  T[s] | mem[SP]
-- `F` ^  T[s] ^ mem[SP]
+- `C` add  s=0: T[0] + N, s=1: user defined
+- `D` &  s=0: T[0] & N, s=1: user defined
+- `E` |  s=0: T[0] | N, s=1: user defined
+- `F` ^  s=0: T[0] ^ N, s=1: user defined
 
 **op1=1** Store T[s] to register/memory. k[1]=d, k[0]=s. Opcode coding is:
 - `0` 
@@ -101,8 +108,8 @@ Disassembly order: ret, pushes, k, opcode, pops
 - `2`
 - `3` 
 - `4` 
-- `5` cy!  d=0: carry flag. s=1: R.
-- `5` r!  d=0: carry flag. s=1: R.
+- `5` n!  d=0: N.
+- `5` r!  d=1: R.
 - `6` 
 - `7` 
 - `8` a!  k[17:2]={0 or -1}: A[d], else user-defined.
@@ -119,24 +126,24 @@ Note that you can't store to cm. Code memory storage is an OS function.
 
 ### \[2] 
 There are 16 iopcodes that take immediate data. They are:
-- `0` +n  Add signed k to T[0]. {1+, 1-, CELL+, CHAR+}
-- `1` &n  Bitwise-and signed k to T[0].
-- `2` |n  Bitwise-or signed k to T[0].
-- `3` ^n  Bitwise-xor signed k to T[0]. {INVERT}
-- `4` xn  Shift T[0] left 4 places and add unsigned k.
-- `5` upn  T[0] = user variable address UP + k. {UP@, USER variables}
-- `6` rpn  T[0] = local variable address RP + k. {RP@, local variables}
-- `7` spn  T[0] = pick address SP + k. {SP@, PICK}
+- `0` +#  Add signed k to T[0]. {1+, 1-, CELL+, CHAR+}
+- `1` &#  Bitwise-and signed k to T[0].
+- `2` |#  Bitwise-or signed k to T[0].
+- `3` ^#  Bitwise-xor signed k to T[0]. {INVERT}
+- `4` x#  Shift T[0] left 4 places and add unsigned k.
+- `5` up#  T[0] = user variable address UP + k. {UP@, USER variables}
+- `6` rp#  T[0] = local variable address RP + k. {RP@, local variables}
+- `7` sp#  T[0] = pick address SP + k. {SP@, PICK}
 - `8`
 - `9` 
-- `A` @n  Fetch cell from data address k into T[0].
-- `B` !n  Store cell T[0] to data address k.
+- `A` @#  Fetch cell from data address k into T[0].
+- `B` !#  Store cell T[0] to data address k.
 - `C` 0bran  Branch if T[0]=0 using displacement k.
 - `D` next  Branch if (--R)>=0 using displacement k. 
 - `E` -bran  Branch if T[0]<0 using displacement k.
 - `F` syscall  ( ? -- ? )  Call Fn[k[23:5] to the underlying system using k[2:0] input and k[4:3] output parameters. 
 
-Syscall functions are in a JS function array. All others are hard coded in the VM.
+Syscall functions are in a host function array. All others are hard coded in the VM.
 
 Multiplication is done with a `*+` step, which is a fractional multiply (multiplier range = 0 to 1).
 
