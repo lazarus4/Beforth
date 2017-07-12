@@ -88,8 +88,7 @@ There are two instances of the TOS, like a two-headed snake. The default is T[0]
 - `2` **asr**  Right shifted T[s].
 - `3` **ror**  Right Right T[s] through carry.
 - `4` **shr**  Right shifted T[s], unsigned.
-- `5` **n**  s=0: N.
-- `5` **r**  s=1: R.
+- `5` **r**  s=0: dm[RP], s=1: user defined.
 - `6` **@ac**  cm[A[s]], optional type = k[4:3]: {cell, short, byte, cell}
 - `7` **@ac+**  cm[A[s]++], optional type = k[4:3]: {cell, short, byte, cell}
 - `8` **a**  k[17:2]={0 or -1}: A[s], else user-defined.
@@ -99,8 +98,10 @@ There are two instances of the TOS, like a two-headed snake. The default is T[0]
 - `B` **@a+**  dm[A[s]++], optional type = k[4:3]: {cell, short, byte, cell}
 - `C` **add**  s=0: T[0] + N, s=1: user defined
 - `D` **&**  s=0: T[0] & N, s=1: user defined
-- `E` **|**  s=0: T[0] | N, s=1: user defined
-- `F` **^**  s=0: T[0] ^ N, s=1: user defined
+- `E` **|**  s=0: T[0] | N
+- `E` **n**  s=1: N
+- `F` **^**  s=0: T[0] ^ N
+- `F` **swap**  s=1: N, N=T[0]
 
 **op1=1** Store T[s] to register/memory. k[1]=d, k[0]=s. Opcode coding is:
 - `0` 
@@ -108,8 +109,8 @@ There are two instances of the TOS, like a two-headed snake. The default is T[0]
 - `2`
 - `3` 
 - `4` 
-- `5` **n!**  d=0: N.
-- `5` **r!**  d=1: R.
+- `5` **r!**  d=0: dm[RP].
+- `5` **n!**  d=1: N.
 - `6` 
 - `7` 
 - `8` **a!**  k[17:2]={0 or -1}: A[d], else user-defined.
@@ -133,9 +134,9 @@ There are 16 iopcodes that take immediate data. They are:
 - `2` **|#**  Bitwise-or signed k to T[0].
 - `3` **^#**  Bitwise-xor signed k to T[0]. {INVERT}
 - `4` **x#**  Shift T[0] left 4 places and add unsigned k.
-- `5` **up#**  T[0] = user variable address UP + k. {UP@, USER variables}
-- `6` **rp#**  T[0] = local variable address RP + k. {RP@, local variables}
-- `7` **sp#**  T[0] = pick address SP + k. {SP@, PICK}
+- `5` **up#**  A[0] = user variable address UP + k. {UP@, USER variables}
+- `6` **rp#**  A[0] = local variable address RP + k. {RP@, local variables}
+- `7` **sp#**  A[0] = pick address SP + k. {SP@, PICK}
 - `8`
 - `9` 
 - `A` **@#**  Fetch cell from data address k into T[0].
@@ -146,8 +147,6 @@ There are 16 iopcodes that take immediate data. They are:
 - `F` **syscall**  ( ? -- ? )  Call Fn[k[23:5] to the underlying system using k[2:0] input and k[4:3] output parameters. 
 
 Syscall functions are in a host function array. All others are hard coded in the VM.
-
-Opcodes 5 thru 7 store to T instead of A for the benefit of the multitasker.
 
 ## Usage
 The basic Forth system is designed as a kernel that can run stand-alone in an embedded system. In other words, the code image compiled by the C can conceivably be copied over to a static ROM image and run in an embedded system. The VM is simple enough to port to the embedded system, so it doesn't need any C. Essentially, Beforth is an embedded system simulator with the cross compiler written in C.
