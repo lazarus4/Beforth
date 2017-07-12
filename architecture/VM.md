@@ -83,24 +83,24 @@ Disassembly order: ret, pushes, k, opcode, pops
 There are two instances of the TOS, like a two-headed snake. The default is T[0], but T[1] is available in cases where it wouldn't add any execution delay. A common problem in Forth is having a little extra state and not having a handy place to stash it. The only downside is with interrupts, which tend to be troublesome from a verification standpoint. Forth does just fine without interrupts. A useful way of handling interrupts is to tweak the RET instruction. If an "interrupt" is pending, jump to the interrupt code instead of popping the return address. That's outside the scope of the VM. Conceptually, it's like the Forth technique of waking a clean-up task after an ISR, with the low level part expected to be handled in hardware.
 
 **op1=0** Load T[d] with a data source. k[1]=s, k[0]=d. The sources are:
-- `0` shl  Left shifted T[s].
-- `1` rol  Rotate Left T[s] through carry.
-- `2` asr  Right shifted T[s].
-- `3` ror  Right Right T[s] through carry.
-- `4` shr  Right shifted T[s], unsigned.
-- `5` n  s=0: N.
-- `5` r  s=1: R.
-- `6` @ac  cm[A[s]], optional type = k[4:3]: {cell, short, byte, cell}
-- `7` @ac+  cm[A[s]++], optional type = k[4:3]: {cell, short, byte, cell}
-- `8` a  k[17:2]={0 or -1}: A[s], else user-defined.
-- `9` \*+  s=0: multiplication step.
-- `9` /+  s=1: division step.
-- `A` @a  dm[A[s]], optional type = k[4:3]: {cell, short, byte, cell}
-- `B` @a+  dm[A[s]++], optional type = k[4:3]: {cell, short, byte, cell}
-- `C` add  s=0: T[0] + N, s=1: user defined
-- `D` &  s=0: T[0] & N, s=1: user defined
-- `E` |  s=0: T[0] | N, s=1: user defined
-- `F` ^  s=0: T[0] ^ N, s=1: user defined
+- `0` **shl**  Left shifted T[s].
+- `1` **rol**  Rotate Left T[s] through carry.
+- `2` **asr**  Right shifted T[s].
+- `3` **ror**  Right Right T[s] through carry.
+- `4` **shr**  Right shifted T[s], unsigned.
+- `5` **n**  s=0: N.
+- `5` **r**  s=1: R.
+- `6` **@ac**  cm[A[s]], optional type = k[4:3]: {cell, short, byte, cell}
+- `7` **@ac+**  cm[A[s]++], optional type = k[4:3]: {cell, short, byte, cell}
+- `8` **a**  k[17:2]={0 or -1}: A[s], else user-defined.
+- `9` **\*+**  s=0: multiplication step.
+- `9` **/+**  s=1: division step.
+- `A` **@a**  dm[A[s]], optional type = k[4:3]: {cell, short, byte, cell}
+- `B` **@a+**  dm[A[s]++], optional type = k[4:3]: {cell, short, byte, cell}
+- `C` **add**  s=0: T[0] + N, s=1: user defined
+- `D` **&**  s=0: T[0] & N, s=1: user defined
+- `E` **|**  s=0: T[0] | N, s=1: user defined
+- `F` **^**  s=0: T[0] ^ N, s=1: user defined
 
 **op1=1** Store T[s] to register/memory. k[1]=d, k[0]=s. Opcode coding is:
 - `0` 
@@ -108,40 +108,40 @@ There are two instances of the TOS, like a two-headed snake. The default is T[0]
 - `2`
 - `3` 
 - `4` 
-- `5` n!  d=0: N.
-- `5` r!  d=1: R.
+- `5` **n!**  d=0: N.
+- `5` **r!**  d=1: R.
 - `6` 
 - `7` 
-- `8` a!  k[17:2]={0 or -1}: A[d], else user-defined.
+- `8` **a!**  k[17:2]={0 or -1}: A[d], else user-defined.
 - `9` ??? d=0: load mul registers.
 - `9` ??? d=1: load div registers.
-- `A` !a  dm[A[d]], optional type = k[4:3]: {cell, short, byte, cell}
-- `B` !a+  dm[A[d]++], optional type = k[4:3]: {cell, short, byte, cell}
+- `A` **!a**  dm[A[d]], optional type = k[4:3]: {cell, short, byte, cell}
+- `B` **!a+**  dm[A[d]++], optional type = k[4:3]: {cell, short, byte, cell}
 - `C` 
-- `D` up!
-- `E` sp!
-- `F` rp!
+- `D` **up!**
+- `E` **sp!**
+- `F` **rp!**
 
 Note that you can't store to cm. Code memory storage is an OS function.
 
 ### \[2] 
 There are 16 iopcodes that take immediate data. They are:
-- `0` +#  Add signed k to T[0]. {1+, 1-, CELL+, CHAR+}
-- `1` &#  Bitwise-and signed k to T[0].
-- `2` |#  Bitwise-or signed k to T[0].
-- `3` ^#  Bitwise-xor signed k to T[0]. {INVERT}
-- `4` x#  Shift T[0] left 4 places and add unsigned k.
-- `5` up#  T[0] = user variable address UP + k. {UP@, USER variables}
-- `6` rp#  T[0] = local variable address RP + k. {RP@, local variables}
-- `7` sp#  T[0] = pick address SP + k. {SP@, PICK}
+- `0` **+#**  Add signed k to T[0]. {1+, 1-, CELL+, CHAR+}
+- `1` **&#**  Bitwise-and signed k to T[0].
+- `2` **|#**  Bitwise-or signed k to T[0].
+- `3` **^#**  Bitwise-xor signed k to T[0]. {INVERT}
+- `4` **x#**  Shift T[0] left 4 places and add unsigned k.
+- `5` **up#**  T[0] = user variable address UP + k. {UP@, USER variables}
+- `6` **rp#**  T[0] = local variable address RP + k. {RP@, local variables}
+- `7` **sp#**  T[0] = pick address SP + k. {SP@, PICK}
 - `8`
 - `9` 
-- `A` @#  Fetch cell from data address k into T[0].
-- `B` !#  Store cell T[0] to data address k.
-- `C` 0bran  Branch if T[0]=0 using displacement k.
-- `D` next  Branch if (--R)>=0 using displacement k. 
-- `E` -bran  Branch if T[0]<0 using displacement k.
-- `F` syscall  ( ? -- ? )  Call Fn[k[23:5] to the underlying system using k[2:0] input and k[4:3] output parameters. 
+- `A` **@#**  Fetch cell from data address k into T[0].
+- `B` **!#**  Store cell T[0] to data address k.
+- `C` **0bran**  Branch if T[0]=0 using displacement k.
+- `D` **next**  Branch if (--R)>=0 using displacement k. 
+- `E` **-bran**  Branch if T[0]<0 using displacement k.
+- `F` **syscall**  ( ? -- ? )  Call Fn[k[23:5] to the underlying system using k[2:0] input and k[4:3] output parameters. 
 
 Syscall functions are in a host function array. All others are hard coded in the VM.
 
