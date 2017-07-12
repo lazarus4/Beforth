@@ -36,14 +36,14 @@ A Forth implementation should have a pretty face and be heavily instrumented. Be
 1. SciTE. Found it impenetrable.
 2. NotePad++. An add-on DLL was feasible but hacking the GUI was too much.
 3. Visual Studio Code. Bloated, and the debugger is not reversible.
-4. Web Browser. ACE is a good editor. This breed of cat is overprotective of its sandbox.
+4. Web Browser. ACE is a good editor. This breed of cat is very protective of its sandbox.
 5. QT or wxWidgets, cross-platform IDEs. They have a Scintilla editor widget and a terminal widget.
 
-Mostly it's a choice between a difficult sandbox and bloatware. I downloaded wxWidgets and MinGW. wxWidgets spent a good long time compiling and quit with an error. Not awe-inspiring. I tried QT Creator. It created and built an example program. Okay, but where's the executable?
+Mostly it's a choice between a difficult sandbox and bloatware. I downloaded wxWidgets and MinGW. wxWidgets spent a good long time compiling and quit with an error. Not awe-inspiring. I tried QT Creator. It created and built an example program. Okay, but where's the executable? Did I say bloatware?
 
-The browser sandbox can be dealt with. It should be easy to import and export tarballs of projects for archival purposes. Maybe later on there can be integration with a repository. Client side Javascript produces pressure for remote file storage, so that should become more prevalent. So, maybe I'll stick with the mean cat for a while.
+The browser sandbox can be dealt with. It should be easy to import and export tarballs of projects for archival purposes. Maybe later on there can be integration with a repository. Client side Javascript produces pressure for remote file storage, so that should become more prevalent. 5MB of file storage (localStorage API) is plenty for Forth. Node.js is cool conceptually, but the IDE is really a front-end thing. Node.js can implement backend things like repos and serial communications on a local server. There may be tricks for making certain browsers access serial ports.
 
-Option 4 is nice. Search engines answer most questions about the Javascript languages and open source tools (found in jsTools folder). Choosing a terminal was painful. I finally settled on xterm after not getting past scoping problems with JQuery Terminal. So, I have to implement my own buffer editor and history buffer. ACE is good, but not tiny. There are other editors.
+Option 4 seems like the best option. Search engines answer most questions about the Javascript languages and open source tools (found in jsTools folder). Choosing a terminal was painful. I finally settled on xterm after not getting past scoping problems with JQuery Terminal. So, I have to implement my own buffer editor and history buffer. ACE is good, but not tiny. There are other editors.
 
 ## Why Beforth?
 Be the Forth. Well okay, the Beforth name could also come from the originator's initials (Brad Eckert), but "Be the Forth" is so much more Zen. It's all about having fun. Forth is supposed to be fun. Programming is supposed to be fun. A Forth system should teach you what good Forth looks like and it should help you easily remember and explore aspects of the system so that your memory only has to be "sharp enough".
