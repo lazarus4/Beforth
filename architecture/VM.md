@@ -1,6 +1,8 @@
 # VM
 
-The Beforth VM is a small bytecode interpreter that is equally at home on the desktop and in small embedded systems. The VM and the Forth system are written from the point of view of a small MCU. The essential parts of the runtime system are contained in the VM and optional compiler extensions are added in a way that allows the Forth and the user application to be ported over to an MCU. 
+The Beforth VM is a small ISS (instruction set simulator) that implements a stack computer. This ISA can be interpreted in real time on an MCU, PC, or gates (VHDL/Verilog). This provides a high semantic density, simple compiler, and reasonably high speed. Fast ISS is a matter of minimizing the complexity of decoding the ISA in software. The essential parts of the runtime system are contained in the VM and optional compiler extensions are added in a way that allows the Forth and the user application to be ported over to an MCU or FPGA. 
+
+The Harvard architecture of the VM uses a block of RAM for data and stack space, and a block of ROM for code space. Running code in an ISS isn't necessarily slow. Depending on the implementation, you can eliminate cache misses. That does a lot to close the gap between it and native bloatware.
 
 The VM has the following system features:
 - 32-bit or 16-bit cell size.
@@ -8,8 +10,7 @@ The VM has the following system features:
 - Little endian.
 
 ## VM memory model
-The VM is written in JavaScript using typed arrays. The main part of the VM is a large switch statement that's portable to C. 
-The VM is meant to be simple enough to port to anything, including VHDL/Verilog.
+The VM is written in JavaScript using typed arrays. 
 ```
 var CM = new Int16Array(codeMemSize); // Code space  
 var DM = new Int32Array(dataMemSize); // Data space
@@ -43,7 +44,7 @@ Stacks are kept in data memory. Stack pointers are registers. The top of the dat
 
 16-bit instructions strike a good balance between size and speed. An MCU implementation can use 1 or 2 multi-way jumps to decode instructions. The VM uses a tight loop that fetches the next 16-bit instruction from CM and executes it. The instruction encoding allows for compact calls and jumps. Taking a hardware-friendly view of the VM, the four MSBs of the instruction are decoded into four instruction groups:
 
-- 000s = opcode: ret + op1 + k2/k18 + stack + op4 = 2-bit/18-bit literal, opcode, stack operation, and return bit [1]
+- 000s = opcode: ret + op1 + k2/k18 + stack + op4 = 2-bit/18-bit literal, 5-bit opcode, stack operation, and return bit [1]
 - 001s = iopcode: k4/k20 + stack + op4 = opcode with 4-bit/20-bit signed data [2]
 - 011s = literal: k12/k28 = 12-bit or 28-bit signed literal
 - 100s = jump: k12/k28 = signed PC displacement
@@ -51,7 +52,7 @@ Stacks are kept in data memory. Stack pointers are registers. The top of the dat
 - 110s = ajump: k12/k28 = absolute PC 
 - 111s = acall: k12/k28 = absolute PC 
 
-The *s* bit indicates instruction size. If '1', 16-bit immediate data follows. This covers most literals. Extremely large literals can be formed by compiling 28-bit literal and an additional *xlit* opcode to shift in the remaining 4 bits.
+The *s* bit indicates instruction size. If '1', 16-bit immediate data follows. This covers most literals. Extremely large literals can be formed by compiling a 28-bit literal and an additional *xlit* opcode to shift in the remaining 4 bits.
 
 The assembler uses blank delimited tokens to assemble the instructions. Tokens are looked up in a wordlist and executed, or converted to a number. The token names are listed below:
 
