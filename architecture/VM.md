@@ -66,7 +66,7 @@ stack3 | usage
 1 | push PC to the return stack (mem[--RP]) before executing the instruction
 2 | push R to the return stack (mem[--RP]) before executing the instruction
 3 | push N to the data stack (mem[--SP]) before executing the instruction
-4 | noop
+4 | pop PC from the return stack (mem[RP++]) before executing the instruction
 5 | pop PC from the return stack (mem[RP++]) after executing the instruction
 6 | pop R from the return stack (mem[RP++]) after executing the instruction
 7 | pop N from the data stack (mem[SP++]) after executing the instruction
