@@ -2,7 +2,9 @@
 
 The Beforth VM is a small ISS (instruction set simulator) that implements a stack computer. This ISA can be interpreted in real time on an MCU, PC, or gates (VHDL/Verilog). This provides a high semantic density, simple compiler, and reasonably high speed. Fast ISS is a matter of minimizing the complexity of decoding the ISA in software. The essential parts of the runtime system are contained in the VM and optional compiler extensions are added in a way that allows the Forth and the user application to be ported over to an MCU or FPGA. 
 
-The Harvard architecture of the VM uses a block of RAM for data and stack space, and a block of ROM for code space. Running code in an ISS isn't necessarily slow. Depending on the implementation, you can eliminate cache misses. That does a lot to close the gap between it and native bloatware. In an FPGA implementation, you could simulate async read by clocking BRAM at double clock speed and keeping the data path from BRAM free of delays.
+The Harvard architecture of the VM uses a block of RAM for data and stack space, and a block of ROM for code space. Running code in an ISS isn't necessarily slow. Depending on the implementation, you can eliminate cache misses. That does a lot to close the gap between it and native bloatware. 
+
+In an FPGA implementation, BRAM would use shallow read and write pipelines to deal with fact that the BRAM is fully synchronous. That causes reads to be delayed, so certain writes must be delayed by one clock cycle to compensate. This affects the instruction set, since more sophisticated addressing has almost a whole clock period to settle.
 
 The VM has the following system features:
 - 32-bit or 16-bit cell size.
@@ -28,8 +30,7 @@ The *undo* buffer packs address and data space into a single 32-bit token for un
 - RM[5] = `UP` user pointer.
 - RM[6] = `SP` data stack pointer.
 - RM[7] = `RP` return stack pointer.
-- RM[8] = `A0` address register.
-- RM[9] = `A1` address register.
+- RM[8..11] = `A0` to `A3` address registers.
 
 The way memory is used is central to the VM. The UP register points to a Task Control Block (TCB), a small buffer in RAM that's used by a round-robin cooperative multitasker.
 ![Stacks Illustration](https://github.com/lazarus4/Beforth/raw/master/architecture/stacks_01.png)
@@ -76,40 +77,40 @@ Disassembly order: ret, pushes, k, opcode, pops
 
 The assembler uses blank delimited tokens to assemble the instructions. Tokens are looked up in a wordlist and executed, or converted to a number. The token names are listed below:
 
-### opcode5 
-Opcodes that take immediate data:
-- `0` **x#**  Shift T left 4 places and add unsigned k.
-- `1` **up#**  T = user variable address UP + k[4:0]. {UP@, USER variables}
-- `2` **rp#**  T = local variable address RP + k[4:0]. {RP@, local variables}
-- `3` **sp#**  T = pick address SP + k[4:0]. {SP@, PICK}
-- `4` **a[]**  A[0] = k.
-- `5` **up[]**  A[0] = user variable address UP + k. {UP@, USER variables}
-- `6` **rp[]**  A[0] = local variable address RP + k. {RP@, local variables}
-- `7` **sp[]**  A[0] = pick address SP + k. {SP@, PICK}
+### opcode6 
+Opcodes that route k to the ALU:
+- `0` **T+K**
+- `1` **T&K**
+- `2` **T|K**
+- `3` **T^K**
+- `4` **K-T**
+- `5` **T\*K**
 - `8` **0bran**  Branch if T[0]=0 using displacement k.
 - `9` **next**  Branch if (--R)>=0 using displacement k. 
 - `A` **-bran**  Branch if T[0]<0 using displacement k.
 - `B` **syscall**  ( ? -- ? )  Call Fn[k[23:5] to the underlying system using k[2:0] input and k[4:3] output parameters. 
-- `C` **a[]**  A[1] = k.
-- `D` **up[]**  A[1] = user variable address UP + k[4:0]. {UP@, USER variables}
-- `E` **rp[]**  A[1] = local variable address RP + k[4:0]. {RP@, local variables}
-- `F` **sp[]**  A[1] = pick address SP + k[4:0]. {SP@, PICK}
 
 Syscall functions are in a host function array. All others are hard coded in the VM.
 
-### opcode6:
+### opcode5:
 Load T with a data source. 
 
-- `0` **shftop**  Shifted T, operation k. k[0]=direction, k[2:1]=input
-- `1` **aluop**  ALU operation of N,T operation k.
-- `2` **n**  N
-- `3` **swap**  N, N=T
-- `4` **a**  A[k[0]]
-- `5` **@a**  dm[A[k[0]]], optional type = k[4:3]: {cell, short, byte, cell}
-- `6` **@a+**  dm[A[k[0]]++], optional type = k[4:3]: {cell, short, byte, cell}
-- `7` **r**  dm[RP].
-- `8` **@ac**  cm[A[k[0]]], optional type = k[4:3]: {cell, short, byte, cell}
-- `9` **@ac+**  cm[A[k[0]]++], optional type = k[4:3]: {cell, short, byte, cell}
+- `0` **T+N** if k=0 else left shift T, modified by k
+- `1` **T&N** if k=0 else right shift T, modified by k
+- `2` **T|N** if k=0 else left shift by 4, modified by k
+- `3` **T^N** if k=0 else right shift by 4, modified by k
+- `4` **N-T** if k=0 else **a@** A[k[1:0]]
+- `5` **T\*N** if k=0 else undefined
+- `6` **@a**  dm[A[k[1:0]]], optional type = k[3:2]: {cell, short, byte, cell}
+- `7` **@a+**  dm[A[k[1:0]]++], optional type = k[3:2]: {cell, short, byte, cell}
+- `8` **x#**  Shift T left 4 places and add unsigned k. 
+- `9` **@u**  fetch from user variable, address UP + k.
+- `A` **@r**  fetch from local variable, address RP + k.
+- `B` **@s**  fetch from stack, address SP + k. 
+- `C` **@sn**  fetch from stack, address SP + k. Also load T to N.
+- `D` **kp@**  Fetch from pointer[k]: {up, sp, rp}
+- `E` **@ac**  cm[A[k[1:0]]], optional type = k[3:2]: {cell, short, byte, cell}
+- `F` **@ac+**  cm[A[k[1:0]]++], optional type = k[3:2]: {cell, short, byte, cell}
 
 **shft** operations:
 - `0` **shl** Left shift T, shift in 0 (2\*)
@@ -119,28 +120,24 @@ Load T with a data source.
 - `4` **rlc** Left shift T, shift in carry
 - `5` **rrc** Right shift T, shift in carry 
 
-**aluop** operations:
-- `0` **add**  T + N
-- `1` **&**  T & N
-- `2` **|**  T | N
-- `3` **^**  T ^ N
-- `4` **\*F**  T * N >> cellsize
-
 ### opcode7:
 Store T to register/memory.
 - `0` 
 - `1` 
-- `2` **n!**  N.
+- `2` 
 - `3` 
-- `4` **a!**  A[k[0]]
-- `5` **!a**  dm[A[k[0]]], optional type = k[4:3]: {cell, short, byte, cell}
-- `6` **!a+**  dm[A[k[0]]++], optional type = k[4:3]: {cell, short, byte, cell}
-- `7` **r!**  dm[RP].
-
-- `C` 
-- `D` **up!**
-- `E` **sp!**
-- `F` **rp!**
+- `4` 
+- `5` **!a**  dm[A[k[1:0]]], optional type = k[3:2]: {cell, short, byte, cell}
+- `6` **!a+**  dm[A[k[1:0]]++], optional type = k[3:2]: {cell, short, byte, cell}
+- `7` 
+- `8` **!u**  store to user variable, address UP + k.
+- `9` **!r**  store to local variable, address RP + k.
+- `A` **!s**  store to stack, address SP + k. 
+- `B`
+- `C` **a!**  A[k[1:0]]
+- `D` **kp!**  Store to pointer[k]: {up, sp, rp} 
+- `E`
+- `F` 
 
 Note that you can't store to cm. Code memory storage is an OS function.
 
