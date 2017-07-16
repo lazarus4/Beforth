@@ -26,7 +26,6 @@ The *undo* buffer packs address and data space into a single 32-bit token for un
 - RM[1] = `FLAGS` carry-out flag from +. May contain other flags.
 - RM[2] = `T` top of data stack.
 - RM[3] = `N` next on data stack.
-- RM[4] = `R` top of return stack.
 - RM[5] = `UP` user pointer.
 - RM[6] = `SP` data stack pointer.
 - RM[7] = `RP` return stack pointer.
@@ -66,11 +65,11 @@ stack3 | usage
 ------ | -----
 0 | noop
 1 | push PC to the return stack (mem[--RP]) before executing the instruction
-2 | push R to the return stack (mem[--RP]) before executing the instruction
+2 | push T to the return stack (mem[--RP]) before executing the instruction
 3 | push N to the data stack (mem[--SP]) before executing the instruction
 4 | pop PC from the return stack (mem[RP++]) before executing the instruction
 5 | pop PC from the return stack (mem[RP++]) after executing the instruction
-6 | pop R from the return stack (mem[RP++]) after executing the instruction
+6 | pop T from the return stack (mem[RP++]) after executing the instruction
 7 | pop N from the data stack (mem[SP++]) after executing the instruction
 
 Disassembly order: ret, pushes, k, opcode, pops
@@ -84,11 +83,10 @@ Opcodes that route k to the ALU:
 - `2` **T|K**
 - `3` **T^K**
 - `4` **K-T**
-- `5` **T\*K**
-- `8` **0bran**  Branch if T[0]=0 using displacement k.
-- `9` **next**  Branch if (--R)>=0 using displacement k. 
-- `A` **-bran**  Branch if T[0]<0 using displacement k.
-- `B` **syscall**  ( ? -- ? )  Call Fn[k[23:5] to the underlying system using k[2:0] input and k[4:3] output parameters. 
+- `5` **T\*K**  Save upper result in N, which will be discarded if not `um*`.
+- `8` **0bran**  Branch if T=0 using displacement k.
+- `9` **-bran**  Branch if T<0 using displacement k.
+- `A` **syscall**  ( ? -- ? )  Call Fn[k[23:5] to the underlying system using k[2:0] input and k[4:3] output parameters. 
 
 Syscall functions are in a host function array. All others are hard coded in the VM.
 
