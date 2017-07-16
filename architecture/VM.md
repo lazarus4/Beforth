@@ -28,7 +28,8 @@ The *undo* buffer packs address and data space into a single 32-bit token for un
 - RM[5] = `UP` user pointer.
 - RM[6] = `SP` data stack pointer.
 - RM[7] = `RP` return stack pointer.
-- RM[8] = `A` address register.
+- RM[8] = `A0` address register.
+- RM[9] = `A1` address register.
 
 The way memory is used is central to the VM. The UP register points to a Task Control Block (TCB), a small buffer in RAM that's used by a round-robin cooperative multitasker.
 ![Stacks Illustration](https://github.com/lazarus4/Beforth/raw/master/architecture/stacks_01.png)
