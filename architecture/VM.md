@@ -83,7 +83,7 @@ Opcodes that route k to the ALU:
 - `2` **T|K**
 - `3` **T^K**
 - `4` **K-T**
-- `5` **T\*K**  Save upper result in N, which will be discarded if not `um*`.
+- `5` **T\*K**  Partial multiply: Lower halves are multiplied to produce 
 - `8` **0bran**  Branch if T=0 using displacement k.
 - `9` **-bran**  Branch if T<0 using displacement k.
 - `A` **syscall**  ( ? -- ? )  Call Fn[k[23:5] to the underlying system using k[2:0] input and k[4:3] output parameters. 
@@ -98,7 +98,7 @@ Load T with a data source.
 - `2` **T|N** if k=0 else left shift by 4, modified by k
 - `3` **T^N** if k=0 else right shift by 4, modified by k
 - `4` **N-T** if k=0 else **a@** A[k[1:0]]
-- `5` **T\*N** if k=0 else undefined
+- `5` **T\*N** if k=0 else division step, modified by k
 - `6` **@a**  dm[A[k[1:0]]], optional type = k[3:2]: {cell, short, byte, cell}
 - `7` **@a+**  dm[A[k[1:0]]++], optional type = k[3:2]: {cell, short, byte, cell}
 - `8` **x#**  Shift T left 4 places and add unsigned k. 
@@ -106,7 +106,7 @@ Load T with a data source.
 - `A` **@r**  fetch from local variable, address RP + k.
 - `B` **@s**  fetch from stack, address SP + k. 
 - `C` **@sn**  fetch from stack, address SP + k. Also load T to N.
-- `D` **kp@**  Fetch from pointer[k]: {up, sp, rp}
+- `D` **reg@**  Fetch from register[k]: {up, sp, rp, divisor, dividendL, dividendH}
 - `E` **@ac**  cm[A[k[1:0]]], optional type = k[3:2]: {cell, short, byte, cell}
 - `F` **@ac+**  cm[A[k[1:0]]++], optional type = k[3:2]: {cell, short, byte, cell}
 
@@ -133,7 +133,7 @@ Store T to register/memory.
 - `A` **!s**  store to stack, address SP + k. 
 - `B`
 - `C` **a!**  A[k[1:0]]
-- `D` **kp!**  Store to pointer[k]: {up, sp, rp} 
+- `D` **reg!**  Store to register[k]: {up, sp, rp, divisor, dividendL, dividendH} 
 - `E`
 - `F` 
 
