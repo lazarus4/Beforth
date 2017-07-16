@@ -97,53 +97,51 @@ Opcodes that take immediate data:
 Syscall functions are in a host function array. All others are hard coded in the VM.
 
 ### opcode6:
-Load T or N with a data source. k[0]=dest: {T,N}.
+Load T with a data source. 
 
-- `0` **shl**  Left shifted T.
-- `1` **rol**  Rotate Left T through carry.
-- `2` **asr**  Right shifted T.
-- `3` **ror**  Right Right T through carry.
-- `4` **shr**  Right shifted T, unsigned.
-- `5` **r**  s=0: dm[RP], s=1: user defined.
-- `6` **@ac**  cm[A[s]], optional type = k[4:3]: {cell, short, byte, cell}
-- `7` **@ac+**  cm[A[s]++], optional type = k[4:3]: {cell, short, byte, cell}
-- `8` **a**  k[17:2]={0 or -1}: A[s], else user-defined.
-- `9` **\*+**  s=0: multiplication step.
-- `9` **/+**  s=1: division step.
-- `A` **@a**  dm[A[s]], optional type = k[4:3]: {cell, short, byte, cell}
-- `B` **@a+**  dm[A[s]++], optional type = k[4:3]: {cell, short, byte, cell}
-- `C` **add**  s=0: T + N, s=1: user defined
-- `D` **&**  s=0: T & N, s=1: user defined
-- `E` **|**  s=0: T | N
-- `E` **n**  s=1: N
-- `F` **^**  s=0: T ^ N
-- `F` **swap**  s=1: N, N=T
+- `0` **shftop**  Shifted T, operation k. k[0]=direction, k[2:1]=input
+- `1` **aluop**  ALU operation of N,T operation k.
+- `2` **n**  N
+- `3` **swap**  N, N=T
+- `4` **a**  A[k[0]]
+- `5` **@a**  dm[A[k[0]]], optional type = k[4:3]: {cell, short, byte, cell}
+- `6` **@a+**  dm[A[k[0]]++], optional type = k[4:3]: {cell, short, byte, cell}
+- `7` **r**  dm[RP].
+- `8` **@ac**  cm[A[k[0]]], optional type = k[4:3]: {cell, short, byte, cell}
+- `9` **@ac+**  cm[A[k[0]]++], optional type = k[4:3]: {cell, short, byte, cell}
+
+**shft** operations:
+- `0` **shl** Left shift T, shift in 0 (2\*)
+- `1` **shr** Right shift T, shift in 0 (U2/)
+- `2` **rol** Left shift T, shift in MSB
+- `3` **asr** Right shift T, shift in MSB (2/)
+- `4` **rlc** Left shift T, shift in carry
+- `5` **rrc** Right shift T, shift in carry 
+
+**aluop** operations:
+- `0` **add**  T + N
+- `1` **&**  T & N
+- `2` **|**  T | N
+- `3` **^**  T ^ N
+- `4` **\*F**  T * N >> cellsize
 
 ### opcode7:
-Store T to register/memory. k[0]=s. Opcode coding is:
+Store T to register/memory.
 - `0` 
 - `1` 
-- `2`
+- `2` **n!**  N.
 - `3` 
-- `4` 
-- `5` **r!**  d=0: dm[RP].
-- `5` **n!**  d=1: N.
-- `6` 
-- `7` 
-- `8` **a!**  k[17:2]={0 or -1}: A[d], else user-defined.
-- `9` ??? d=0: load mul registers.
-- `9` ??? d=1: load div registers.
-- `A` **!a**  dm[A[d]], optional type = k[4:3]: {cell, short, byte, cell}
-- `B` **!a+**  dm[A[d]++], optional type = k[4:3]: {cell, short, byte, cell}
+- `4` **a!**  A[k[0]]
+- `5` **!a**  dm[A[k[0]]], optional type = k[4:3]: {cell, short, byte, cell}
+- `6` **!a+**  dm[A[k[0]]++], optional type = k[4:3]: {cell, short, byte, cell}
+- `7` **r!**  dm[RP].
+
 - `C` 
 - `D` **up!**
 - `E` **sp!**
 - `F` **rp!**
 
 Note that you can't store to cm. Code memory storage is an OS function.
-
-Multiplication is done with a `*+` step, which is a fractional multiply (multiplier range = 0 to 1).
-
 
 ## Usage
 The basic Forth system is designed as a kernel that can run stand-alone in an embedded system. In other words, the code image compiled by the C can conceivably be copied over to a static ROM image and run in an embedded system. The VM is simple enough to port to the embedded system, so it doesn't need any C. Essentially, Beforth is an embedded system simulator with the cross compiler written in C.
