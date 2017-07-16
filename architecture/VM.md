@@ -83,32 +83,44 @@ Opcodes that route k to the ALU:
 - `2` **T|K**
 - `3` **T^K**
 - `4` **K-T**
-- `5` **T\*K**  Partial multiply: Lower halves are multiplied to produce 
-- `8` **0bran**  Branch if T=0 using displacement k.
-- `9` **-bran**  Branch if T<0 using displacement k.
-- `A` **syscall**  ( ? -- ? )  Call Fn[k[23:5] to the underlying system using k[2:0] input and k[4:3] output parameters. 
+- `5` **T\*K**  cell * cell --> cell, truncated
+- `6` **T\*KF**  (cell * cell) >> cellsize --> cell
+- `C` **pjump**  PC-relative jump: PC = k - T.
+- `D` **0bran**  Branch if T=0 using displacement k.
+- `E` **-bran**  Branch if T<0 using displacement k.
+- `F` **syscall**  ( ? -- ? )  Call Fn[k[23:5] to the underlying system using k[2:0] input and k[4:3] output parameters. 
 
 Syscall functions are in a host function array. All others are hard coded in the VM.
+
+Multiply is provided in regular and fractional versions. `UM*` can be built from `T*N` and `T*NF` if needed.
+
+pjump is used for computed jumps such as in the LSHIFT unrolled loop:
+```
+code lshift  ( x cnt -- x' )
+   15 K  T&K  
+   CHERE 17 + K  PJUMP
+   SHL SHL SHL SHL  SHL SHL SHL SHL  SHL SHL SHL SHL  SHL SHL SHL SHL
+   RET
+```
 
 ### opcode5:
 Load T with a data source. 
 
-- `0` **T+N** if k=0 else left shift T, modified by k
-- `1` **T&N** if k=0 else right shift T, modified by k
-- `2` **T|N** if k=0 else left shift by 4, modified by k
-- `3` **T^N** if k=0 else right shift by 4, modified by k
-- `4` **N-T** if k=0 else **a@** A[k[1:0]]
-- `5` **T\*N** if k=0 else division step, modified by k
-- `6` **@a**  dm[A[k[1:0]]], optional type = k[3:2]: {cell, short, byte, cell}
-- `7` **@a+**  dm[A[k[1:0]]++], optional type = k[3:2]: {cell, short, byte, cell}
+- `0` **T+N** if k[4]=0 else left shift T, modified by k
+- `1` **T&N** if k[4]=0 else right shift T, modified by k
+- `2` **T|N** if k[4]=0 else left shift by 4, modified by k
+- `3` **T^N** if k[4]=0 else right shift by 4, modified by k
+- `4` **N-T** if k[4]=0 else **a@** A[k[1:0]]
+- `5` **T\*N** if k[4]=0 else division step, modified by k
+- `6` **T\*NF** if k[4]=0 else undefined
 - `8` **x#**  Shift T left 4 places and add unsigned k. 
 - `9` **@u**  fetch from user variable, address UP + k.
 - `A` **@r**  fetch from local variable, address RP + k.
 - `B` **@s**  fetch from stack, address SP + k. 
 - `C` **@sn**  fetch from stack, address SP + k. Also load T to N.
 - `D` **reg@**  Fetch from register[k]: {up, sp, rp, divisor, dividendL, dividendH}
-- `E` **@ac**  cm[A[k[1:0]]], optional type = k[3:2]: {cell, short, byte, cell}
-- `F` **@ac+**  cm[A[k[1:0]]++], optional type = k[3:2]: {cell, short, byte, cell}
+- `E` **@a**  dm[A[k[1:0]]], optional type = k[3:2]: {cell, short, byte, cell}, postinc if k[4]=1.
+- `F` **@ac**  cm[A[k[1:0]]], optional type = k[3:2]: {cell, short, byte, cell}, postinc if k[4]=1.
 
 **shft** operations:
 - `0` **shl** Left shift T, shift in 0 (2\*)
@@ -125,16 +137,16 @@ Store T to register/memory.
 - `2` 
 - `3` 
 - `4` 
-- `5` **!a**  dm[A[k[1:0]]], optional type = k[3:2]: {cell, short, byte, cell}
-- `6` **!a+**  dm[A[k[1:0]]++], optional type = k[3:2]: {cell, short, byte, cell}
+- `5` 
+- `6` 
 - `7` 
 - `8` **!u**  store to user variable, address UP + k.
 - `9` **!r**  store to local variable, address RP + k.
-- `A` **!s**  store to stack, address SP + k. 
-- `B`
+- `A` **!s**  store to stack, address SP + k.
+- `B` 
 - `C` **a!**  A[k[1:0]]
 - `D` **reg!**  Store to register[k]: {up, sp, rp, divisor, dividendL, dividendH} 
-- `E`
+- `E` **!a**  dm[A[k[1:0]]], optional type = k[3:2]: {cell, short, byte, cell}, postinc if k[4]=1.
 - `F` 
 
 Note that you can't store to cm. Code memory storage is an OS function.
