@@ -4,14 +4,14 @@ Embedded systems (MCUs) differ from desktop systems in that RAM isn't cheap. The
 
 The Forth concept of the VALUE is very powerful because it decouples the code from implementation details. A simple lexicon could support "stingey locals" and gracefully degrade to "do nothing" on systems that don't need it.
 
-`VALUE-BITS` ( n -- ) Sets the number of bits to be used by VALUEs.
-`VALUE` ( n *name* -- ) Define a value with a default setting. If it crosses a cell boundary, throw an error.
+- `VALUE-BITS` ( n -- ) Sets the number of bits to be used by VALUEs.
+- `VALUE` ( n *name* -- ) Define a value with a default setting. If it crosses a cell boundary, throw an error.
 
 Another way to handle bit fields is with structures. A sample structure declaration could be:
 ```
 BIT-STRUCTURE point \ create the named structure, aligned at bit 0 of cell address
    6 BITS           \ set the bit width
-   INT x	          \ 6-bit x field initialized to 0 
+   INT x	           \ 6-bit x field initialized to 0 
    2 VALUE y        \ 6-bit y field initialized to 2 
 END-STRUCTURE
 point p             \ declare an instance of a point
