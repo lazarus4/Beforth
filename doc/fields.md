@@ -11,7 +11,7 @@ Another way to handle bit fields is with structures. A sample structure declarat
 ```
 BIT-STRUCTURE point \ create the named structure, aligned at bit 0 of cell address
    6 BITS           \ set the bit width
-   INT x	           \ 6-bit x field initialized to 0 
+   INT x            \ 6-bit x field initialized to 0 
    2 VALUE y        \ 6-bit y field initialized to 2 
 END-STRUCTURE
 point p             \ declare an instance of a point
@@ -32,4 +32,20 @@ In the example, `x` and `to x` illustrate the two main use cases: reading and wr
 - Write x: left shift x by B, T=mem[addr] and (M<<B), mem[addr]=T or x.
 
 The hardware support required for this is a barrel shifter and logic instructions. Feeding the ALU immediate data would be a bonus since the shifts, ands and ors are static. A barrel shifter costs a lot of FPGA LUTs, but most FPGAs also have hard multipliers that can be used for the same thing. The same rationale goes for MCUs. Rather than use individual shifts in a loop, the fetch/store code could look up 2^N and do a hardware multiply.
+
+## OOPs
+
+The BIT-STRUCTURE syntax could be the beginning of a cheap OOP paradigm. Each of the p1, p2, p3 structures in the example has its own instance of x and y. Words in point are common to each p. 
+
+The search order between `p1[` and `]` would be ( context: ... point p1 | current: ... ). Within an individual scope, words unique to that scope can be defined by changing current to p1. `]` will restore current. For example:
+```
+p1[ definitions : star 42 emit ; ]
+p2[ definitions : star 65 emit ; ]
+```
+Late binding is the main thing missing here. That's basically a value with an xt and `execute` bound to it. Instead of INT or VALUE declaring the word, FUNC ( xt *name* -- ) could be used. For example, ' NOOP FUNC FOO in the `point` declaration would produce in instance FOO in each p. The FOO in p2 could be changed with:
+```
+p2[ definitions :noname ." My Foo" ; is foo ]
+```
+
+
 
