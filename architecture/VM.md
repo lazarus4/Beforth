@@ -96,14 +96,7 @@ Syscall functions are in a host function array. All others are hard coded in the
 
 Multiply is provided in regular and fractional versions. `UM*` can be built from `T*N` and `T*NF` if needed.
 
-pjump is used for computed jumps such as in the LSHIFT unrolled loop:
-```
-code lshift  ( x cnt -- x' )
-   15 K  T&K  
-   CHERE 17 + K  PJUMP
-   SHL SHL SHL SHL  SHL SHL SHL SHL  SHL SHL SHL SHL  SHL SHL SHL SHL
-   RET
-```
+pjump is used for computed jumps such as in an unrolled loop or n-way branch.
 
 ### opcode5:
 Load T with a data source. 
