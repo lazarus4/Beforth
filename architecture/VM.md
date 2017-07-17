@@ -83,8 +83,10 @@ Opcodes that route k to the ALU:
 - `2` **T|K**
 - `3` **T^K**
 - `4` **K-T**
-- `5` **T\*K**  cell * cell --> cell, truncated
-- `6` **T\*KF**  (cell * cell) >> cellsize --> cell
+- `5` **T<<K**
+- `6` **T>>K**
+- `8` **T\*K**  cell * cell --> cell, truncated
+- `9` **T\*KF**  (cell * cell) >> cellsize --> cell
 - `C` **pjump**  PC-relative jump: PC = k - T.
 - `D` **0bran**  Branch if T=0 using displacement k.
 - `E` **-bran**  Branch if T<0 using displacement k.
@@ -106,19 +108,20 @@ code lshift  ( x cnt -- x' )
 ### opcode5:
 Load T with a data source. 
 
-- `0` **T+N** if k[4]=0 else left shift T, modified by k
-- `1` **T&N** if k[4]=0 else right shift T, modified by k
-- `2` **T|N** if k[4]=0 else left shift by 4, modified by k
-- `3` **T^N** if k[4]=0 else right shift by 4, modified by k
-- `4` **N-T** if k[4]=0 else **a@** A[k[1:0]]
-- `5` **T\*N** if k[4]=0 else division step, modified by k
-- `6` **T\*NF** if k[4]=0 else undefined
-- `8` **x#**  Shift T left 4 places and add unsigned k. 
-- `9` **@u**  fetch from user variable, address UP + k.
-- `A` **@r**  fetch from local variable, address RP + k.
-- `B` **@s**  fetch from stack, address SP + k. 
-- `C` **@sn**  fetch from stack, address SP + k. Also load T to N.
-- `D` **reg@**  Fetch from register[k]: {up, sp, rp, divisor, dividendL, dividendH}
+- `0` **T+N** if k[4]=0 else **x#**  Shift T left 4 places and add unsigned k[3:0].
+- `1` **T&N** if k[4]=0 else **a@** A[k[1:0]]
+- `2` **T|N** if k[4]=0 else undefined
+- `3` **T^N** if k[4]=0 else undefined
+- `4` **N-T** if k[4]=0 else undefined
+- `5` **T<<N** if k[4]=0 else left shift T once, modified by k
+- `6` **T>>N** if k[4]=0 else right shift T once, modified by k 
+- `7` **reg@**  Fetch from register[k]: {up, sp, rp, divisor, dividendL, dividendH}
+- `8` **T\*N** if k[4]=0 else division step, modified by k
+- `9` **T\*NF** if k[4]=0 else undefined
+- `A` **@u**  fetch from user variable, address UP + k.
+- `B` **@r**  fetch from local variable, address RP + k.
+- `C` **@s**  fetch from stack, address SP + k. 
+- `D` **@sn**  fetch from stack, address SP + k. Also load T to N.
 - `E` **@a**  dm[A[k[1:0]]], optional type = k[3:2]: {cell, short, byte, cell}, postinc if k[4]=1.
 - `F` **@ac**  cm[A[k[1:0]]], optional type = k[3:2]: {cell, short, byte, cell}, postinc if k[4]=1.
 
@@ -139,13 +142,13 @@ Store T to register/memory.
 - `4` 
 - `5` 
 - `6` 
-- `7` 
+- `7` **reg!**  Store to register[k]: {up, sp, rp, divisor, dividendL, dividendH} 
 - `8` **!u**  store to user variable, address UP + k.
 - `9` **!r**  store to local variable, address RP + k.
 - `A` **!s**  store to stack, address SP + k.
 - `B` 
-- `C` **a!**  A[k[1:0]]
-- `D` **reg!**  Store to register[k]: {up, sp, rp, divisor, dividendL, dividendH} 
+- `C` 
+- `D` **a!**  A[k[1:0]]
 - `E` **!a**  dm[A[k[1:0]]], optional type = k[3:2]: {cell, short, byte, cell}, postinc if k[4]=1.
 - `F` 
 
