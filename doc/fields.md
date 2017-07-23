@@ -42,7 +42,7 @@ The search order between `p1[` and `]` would be ( context: ... point p1 | curren
 p1[ : star 42 emit ; ]
 p2[ : star 65 emit ; ]
 ```
-Late binding is the main thing missing here. That's basically a value with an xt and `execute` bound to it. Instead of INT or VALUE declaring the word, FUNC ( xt *name* -- ) could be used. For example, ' NOOP FUNC FOO in the `point` declaration would produce in instance FOO in each p. The FOO in p2 could be changed with:
+Late binding is the main thing missing here. That's basically a value with an xt and `execute` bound to it. Instead of INT or VALUE declaring the word, FUNC ( xt *name* -- ) could be used. For example, `' NOOP FUNC FOO` in the `point` declaration would produce in instance FOO in each p. The FOO in p2 could be changed with:
 ```
 p2[ :noname ." My Foo" ; is foo ]
 ```
