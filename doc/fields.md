@@ -46,3 +46,14 @@ Late binding is the main thing missing here. That's basically a value with an xt
 ```
 p2[ :noname ." My Foo" ; is foo ]
 ```
+### Inheritance
+Inheritance is mostly a tool in search of a problem, except when you could actually use it. The RAM table in a structure has a fixed size set by `END-STRUCTURE` at compile time. Inheritance would involve expanding this RAM table.
+
+```
+CLASS xpoint        \ create the named structure, aligned at bit 0 of cell address
+   SUBCLASS point   \ start with a basic class
+   6 BITS           \ set the bit width
+   INT z            \ 6-bit z field initialized to 0 
+END-CLASS
+```
+Here, `SUBCLASS` copies the table structure of point to an empty table. It also adds `point` to the search order.
