@@ -96,7 +96,7 @@ Syscall functions are in a host function array. All others are hard coded in the
 
 Multiply is provided in regular and fractional versions. `UM*` can be built from `T*N` and `T*NF` if needed.
 
-pjump is used for computed jumps such as in an unrolled loop or n-way branch.
+pjump is used for computed jumps such as in an unrolled loop or n-way branch. An application may want to decouple itself from address dependencies in the ROM kernel by use of an execution table at a low address. The execution table could contain jumps to kernel words.
 
 ### opcode5:
 Load T with a data source. 
@@ -162,4 +162,14 @@ The VM should have reversible single stepping, letting you step backwards throug
 Undo would be handled by a doubly linked list of data structures containing old and new values and a “register ID”, which means all components of the VM should be defined in array. This list could be built in a big chunk of allocated RAM. When it gets to the end of that space, it wraps to the beginning. It removes the oldest elements to make space for new elements. Since C doesn't do explicit allocation, the list can be handled by the C and the deleted elements reclaimed by GC.
 
 The VM has the option of weak or strong error checking. Strong error checking would perform more checks at each instruction step. The VM restricts write activity to code space by providing an optional run-time check.
+
+## Web Worker Implementation
+A Web Worker is a black box with its own execution thread and a 2-way message stream. The VM ISS can be implemented with a Web Worker. Memory access and step instructions would be through a simple command interpreter. I/O would be handled by the host web page. The stream can use a protocol similar to that of serial debuggers to allow the host to access memory. It would add a means of writing to virtual output ports. The benefits of this are:
+
+- It allows the ISS to run continuously, just like a real target system.
+- It doesn't allow cheating. The host must use the stream protocol to access the internals of the VM.
+- It enforces a protocol that's simple enough to put in hardware.
+
+In the real world, the host would redirect its data stream from the Web Worker to a real device (MCU, FPGA, etc.) through a serial port or socket connection.
+
 
