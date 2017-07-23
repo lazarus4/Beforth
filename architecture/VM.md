@@ -4,7 +4,7 @@ The Beforth VM is a small ISS (instruction set simulator) that implements a stac
 
 The Harvard architecture of the VM uses a block of RAM for data and stack space, and a block of ROM for code space. Running code in an ISS isn't necessarily slow. Depending on the implementation, you can eliminate cache misses. That does a lot to close the gap between it and native bloatware. 
 
-In an FPGA implementation, BRAM would use shallow read and write pipelines to deal with fact that the BRAM is fully synchronous. That causes reads to be delayed, so certain writes must be delayed by one clock cycle to compensate. This affects the instruction set, since more sophisticated addressing has almost a whole clock period to settle.
+In an FPGA implementation, BRAM would use shallow read and write pipelines to deal with fact that the BRAM is fully synchronous. That causes reads to be delayed, so certain writes must be delayed by one clock cycle to compensate. Use of "early-write" in the BRAM compensates for the write delay. This affords more sophisticated addressing because address logic has almost a whole clock period to settle.
 
 The VM has the following system features:
 - 32-bit or 16-bit cell size.
@@ -44,7 +44,7 @@ The first USER variable of the task is FOLLOWER. FOLLOWER is placed first becaus
 ## VM metal
 Stacks are kept in data memory. Stack pointers are registers. The top of the data stack is in a register, as with most Forths. Other registers are SP, RP and UP. In a hardware implementation, stack operations take one clock cycle because data memory is rather small: a few kB. The CPU is a Harvard machine. The main rationale for the classic stack setup is easy context switching in multitasking.
 
-16-bit instructions strike a good balance between size and speed. An MCU implementation can use 1 or 2 multi-way jumps to decode instructions. The VM uses a tight loop that fetches the next 16-bit instruction from CM and executes it. The instruction encoding allows for compact calls and jumps. Taking a hardware-friendly view of the VM, the four MSBs of the instruction are decoded into eight instruction groups. 
+16-bit instructions strike a good balance between size and speed. An MCU ISS implementation can use 1 or 2 multi-way jumps to decode instructions. The VM uses a tight loop that fetches the next 16-bit instruction from CM and executes it. The instruction encoding allows for compact calls and jumps. Taking a hardware-friendly view of the VM, the four MSBs of the instruction are decoded into eight instruction groups. 
 
 Typical Forth systems are dominated by calls, returns and literals. To facilitate tail recursion, jumps and calls use similar encoding. We want instructions to be dispatched with one switch statement if possible. The jump index should be coded in a Hammond-like way, with wider fields for less-used opcodes. Let bits [3:1] of the opcode describe an opcode group G. Bit [0] is a size bit. The corresponding switch index S should be trivial to compute:
 
@@ -78,13 +78,13 @@ The assembler uses blank delimited tokens to assemble the instructions. Tokens a
 
 ### opcode6 
 Opcodes that route k to the ALU:
-- `0` **T+K**
-- `1` **T&K**
-- `2` **T|K**
-- `3` **T^K**
-- `4` **K-T**
-- `5` **T<<K**
-- `6` **T>>K**
+- `0` **T+K**  Add
+- `1` **T&K**  Bitwise AND
+- `2` **T|K**  Bitwise OR
+- `3` **T^K**  Bitwise XOR
+- `4` **K-T**  Subtract
+- `5` **T<<K**  Left shift
+- `6` **T>>K**  Right shift
 - `8` **T\*K**  cell * cell --> cell, truncated
 - `9` **T\*KF**  (cell * cell) >> cellsize --> cell
 - `C` **pjump**  PC-relative jump: PC = k - T.
@@ -101,7 +101,7 @@ pjump is used for computed jumps such as in an unrolled loop or n-way branch.
 ### opcode5:
 Load T with a data source. 
 
-- `0` **T+N** if k[4]=0 else **x#**  Shift T left 4 places and add unsigned k[3:0].
+- `0` **T+N** if k[4]=0 else **x#** Shift T left 4 places and add unsigned k[3:0].
 - `1` **T&N** if k[4]=0 else **a@** A[k[1:0]]
 - `2` **T|N** if k[4]=0 else undefined
 - `3` **T^N** if k[4]=0 else undefined
