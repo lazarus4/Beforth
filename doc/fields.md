@@ -31,7 +31,7 @@ In the example, `x` and `to x` illustrate the two main use cases: reading and wr
 - Read x: T=mem[addr], right shift T by bit position B, bitwise and T with mask M.
 - Write x: left shift x by B, T=mem[addr] and (M<<B), mem[addr]=T or x.
 
-The hardware support required for this is a barrel shifter and logic instructions. Feeding the ALU immediate data would be a bonus since the shifts, ands and ors are static. A barrel shifter costs a lot of FPGA LUTs, but most FPGAs also have hard multipliers that can be used for the same thing. The same rationale goes for MCUs. Rather than use individual shifts in a loop, the fetch/store code could look up 2^N and do a hardware multiply.
+The hardware support required for this is a barrel shifter and logic instructions. Feeding the ALU immediate data would be a bonus since the shifts, ands and ors are static. A barrel shifter costs a lot of FPGA LUTs, but most FPGAs also have hard multipliers that can be used for the same thing. The same rationale goes for MCUs. Rather than use individual shifts in a loop, the fetch/store code could look up 2^N and do a hardware multiply. However, ARM Cortex M3 (for example) has single-instruction bit field extraction instructions UBFX and SBFX.
 
 ## OOPs
 
