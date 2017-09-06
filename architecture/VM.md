@@ -77,7 +77,7 @@ Disassembly order: ret, pushes, k, opcode, pops
 The assembler uses blank delimited tokens to assemble the instructions. Tokens are looked up in a wordlist and executed, or converted to a number. The token names are listed below:
 
 ### opcode6 
-Opcodes that route k to the ALU:
+Opcodes that route k to the ALU and usually store to T:
 - `0` **T+K**  Add
 - `1` **T&K**  Bitwise AND
 - `2` **T|K**  Bitwise OR
@@ -99,16 +99,16 @@ Multiply is provided in regular and fractional versions. `UM*` can be built from
 pjump is used for computed jumps such as in an unrolled loop or n-way branch. An application may want to decouple itself from address dependencies in the ROM kernel by use of an execution table at a low address. The execution table could contain jumps to kernel words.
 
 ### opcode5:
-Load T with a data source. 
+Load T with a data source. Route N to the ALU.
 
 - `0` **T+N** if k[4]=0 else **x#** Shift T left 4 places and add unsigned k[3:0].
-- `1` **T&N** if k[4]=0 else **a@** A[k[1:0]]
-- `2` **T|N** if k[4]=0 else undefined
-- `3` **T^N** if k[4]=0 else undefined
-- `4` **N-T** if k[4]=0 else undefined
-- `5` **T<<N** if k[4]=0 else left shift T once, modified by k
-- `6` **T>>N** if k[4]=0 else right shift T once, modified by k 
-- `7` **reg@**  Fetch from register[k]: {up, sp, rp, divisor, dividendL, dividendH}
+- `1` **T&N** if k[4]=0 else **T&A** A = A[k[3:0]].
+- `2` **T|N** if k[4]=0 else **T|A** A = A[k[3:0]].
+- `3` **T^N** if k[4]=0 else **T^A** A = A[k[3:0]].
+- `4` **N-T** if k[4]=0 else **A-T** A = A[k[3:0]].
+- `5` **T<<N** if k[4]=0 else left shift T once, modified by k (see shift operations)
+- `6` **T>>N** if k[4]=0 else right shift T once, modified by k (see shift operations)
+- `7` **reg@**  Fetch from register[k]: {a[k[3:0]], up, sp, rp, divisor, dividendL, dividendH}
 - `8` **T\*N** if k[4]=0 else division step, modified by k
 - `9` **T\*NF** if k[4]=0 else undefined
 - `A` **@u**  fetch from user variable, address UP + k.
@@ -118,7 +118,7 @@ Load T with a data source.
 - `E` **@a**  dm[A[k[1:0]]], optional type = k[3:2]: {cell, short, byte, cell}, postinc if k[4]=1.
 - `F` **@ac**  cm[A[k[1:0]]], optional type = k[3:2]: {cell, short, byte, cell}, postinc if k[4]=1.
 
-**shft** operations:
+**shift** operations:
 - `0` **shl** Left shift T, shift in 0 (2\*)
 - `1` **shr** Right shift T, shift in 0 (U2/)
 - `2` **rol** Left shift T, shift in MSB
@@ -141,7 +141,7 @@ Store T to register/memory.
 - `A` **!s**  store to stack, address SP + k.
 - `B` 
 - `C` 
-- `D` **a!**  A[k[1:0]]
+- `D` **a!**  A[k[3:0]]
 - `E` **!a**  dm[A[k[1:0]]], optional type = k[3:2]: {cell, short, byte, cell}, postinc if k[4]=1.
 - `F` 
 
