@@ -83,9 +83,9 @@ Opcodes that route k to the ALU and usually store to T:
 - `2` **T|K**  Bitwise OR
 - `3` **T^K**  Bitwise XOR
 - `4` **K-T**  Subtract
-- `5` **T<<K**  Left shift
-- `6` **T>>K**  Right shift
-- `8` **T\*K**  cell * cell --> cell, truncated
+- `5` **T<<K**  Left barrel shift
+- `6` **T>>K**  Right barrel shift
+- `8` **T\*K**  cell * cell --> cell, truncated.
 - `9` **T\*KF**  (cell * cell) >> cellsize --> cell
 - `C` **pjump**  PC-relative jump: PC = k - T.
 - `D` **0bran**  Branch if T=0 using displacement k.
@@ -102,15 +102,15 @@ pjump is used for computed jumps such as in an unrolled loop or n-way branch. An
 Load T with a data source. Route N to the ALU.
 
 - `0` **T+N** if k[4]=0 else **x#** Shift T left 4 places and add unsigned k[3:0].
-- `1` **T&N** if k[4]=0 else **T&A** A = A[k[3:0]].
-- `2` **T|N** if k[4]=0 else **T|A** A = A[k[3:0]].
-- `3` **T^N** if k[4]=0 else **T^A** A = A[k[3:0]].
-- `4` **N-T** if k[4]=0 else **A-T** A = A[k[3:0]].
+- `1` **T&N** if k[4]=0 else **T&A** using A[k[3:0]].
+- `2` **T|N** if k[4]=0 else **T|A** using A[k[3:0]].
+- `3` **T^N** if k[4]=0 else **T^A** using A[k[3:0]].
+- `4` **N-T** if k[4]=0 else **A-T** using A[k[3:0]].
 - `5` **T<<N** if k[4]=0 else left shift T once, modified by k (see shift operations)
 - `6` **T>>N** if k[4]=0 else right shift T once, modified by k (see shift operations)
-- `7` **reg@**  Fetch from register[k]: {a[k[3:0]], up, sp, rp, divisor, dividendL, dividendH}
+- `7` **reg@**  Fetch from register[k]: {a[k[3:0]], up, sp, rp, carry, timer }
 - `8` **T\*N** if k[4]=0 else division step, modified by k
-- `9` **T\*NF** if k[4]=0 else undefined
+- `9` **T\*NF** if k[4]=0 else user coprocessor
 - `A` **@u**  fetch from user variable, address UP + k.
 - `B` **@r**  fetch from local variable, address RP + k.
 - `C` **@s**  fetch from stack, address SP + k. 
@@ -135,26 +135,28 @@ Store T to register/memory.
 - `4` 
 - `5` 
 - `6` 
-- `7` **reg!**  Store to register[k]: {up, sp, rp, divisor, dividendL, dividendH} 
+- `7` **reg!**  Store to register[k]: {A[k[3:0]], up, sp, rp, carry, timer, divisor, dividendL, dividendH} 
 - `8` **!u**  store to user variable, address UP + k.
 - `9` **!r**  store to local variable, address RP + k.
 - `A` **!s**  store to stack, address SP + k.
 - `B` 
 - `C` 
-- `D` **a!**  A[k[3:0]]
+- `D`   
 - `E` **!a**  dm[A[k[1:0]]], optional type = k[3:2]: {cell, short, byte, cell}, postinc if k[4]=1.
 - `F` 
 
 Note that you can't store to cm. Code memory storage is an OS function.
 
 ## Usage
-The basic Forth system is designed as a kernel that can run stand-alone in an embedded system. In other words, the code image compiled by the C can conceivably be copied over to a static ROM image and run in an embedded system. The VM is simple enough to port to the embedded system, so it doesn't need any C. Essentially, Beforth is an embedded system simulator with the cross compiler written in C.
+The basic Forth system is designed as a kernel that can run stand-alone in an embedded system. In other words, the code image compiled by the C can conceivably be copied over to a static ROM image and run in an embedded system. The VM is simple enough to port to the embedded system, so it doesn't need any C. Essentially, Beforth is an embedded system simulator with the cross compiler written in whatever. The C part is a thin client connected to the host through a messaging interface.
 
 The console is by default used by the C interpreter. The interpreter behaves in different ways depending on the context. 
 
 - In low level debugging, it directly controls the VM by bookmarking the return stack, calling the word to execute, and stepping the VM until the return stack is empty (or blown).
 - In high level debugging, it sends commands to the VM's COMMAND task (a thin client) through a real or simulated communication channel.
 - In stand-alone mode, the VM has copied header information into its code space (of just accesses the host's header space) and has its own CLI. The terminal sends straight text, behaving like a dumb terminal.
+
+In practice, messages should be moved into and out of VM memory by "hardware". A frame buffer in shared memory is accessed by hardware for this purpose. It implements the stream protocol to provide error-corrected messages. Messages can come from the host or other CPUs in the system. Message passing is a way to form a network of CPU nodes as well as a debugging interface. An FPGA can have many instances of the CPU, for example.
 
 ## Single Stepping
 The VM should have reversible single stepping, letting you step backwards through execution. When a VM run-time error occurs, such as accessing undefined memory or underflowing/overflowing a stack, you can step backwards in the execution thread to see where it went wrong.
@@ -170,6 +172,6 @@ A Web Worker is a black box with its own execution thread and a 2-way message st
 - It doesn't allow cheating. The host must use the stream protocol to access the internals of the VM.
 - It enforces a protocol that's simple enough to put in hardware.
 
-In the real world, the host would redirect its data stream from the Web Worker to a real device (MCU, FPGA, etc.) through a serial port or socket connection.
+In the real world, the host would redirect its data stream from the Web Worker to a real device (MCU, FPGA, etc.) through a serial port or socket connection. In front-end Javascript, this could be the native messaging interface. 
 
 
