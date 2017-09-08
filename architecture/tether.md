@@ -13,7 +13,13 @@ The protocol uses a *start* symbol (such as falling edge of /SS) to mark the beg
 
 - TX: # of bytes that host may transmit. RX: # of bytes that target may transmit
 - TX: # of outgoing bytes. RX: # of incoming bytes
+- TX: data type. RX: data type
 - TX: outgoing data. RX: incoming data
+
+TX data types:
+
+- 0 = Debugger data
+- 1 = Application data
 
 With the SPI clocked at 60 MHz, the maximum packet of 258 bytes lasts about 35 microseconds. When the host has nothing to send, byte 2 is 0 so if the target likewise has nothing to send the SPI transfer terminates after two bytes. The host is polled at a few MHz to keep latency to a minimum. This polling may be blocked to allow the application to steal the bus for its own use. In this case, the application tells the SPI to stop polling and waits for it to be stopped. After using the bus, it tells the SPI to resume polling.
 
