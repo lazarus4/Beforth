@@ -33,6 +33,8 @@ In the example, `x` and `to x` illustrate the two main use cases: reading and wr
 
 The hardware support required for this is a barrel shifter and logic instructions. Feeding the ALU immediate data would be a bonus since the shifts, ands and ors are static. A barrel shifter costs a lot of FPGA LUTs, but most FPGAs also have hard multipliers that can be used for the same thing. The same rationale goes for MCUs. Rather than use individual shifts in a loop, the fetch/store code could look up 2^N and do a hardware multiply. However, ARM Cortex M3 (for example) has single-instruction bit field extraction instructions UBFX and SBFX.
 
+In the case of fields, the shifts and masks are statically encoded. It would be useful to extend this to the dynamic case, to eliminate C@ and C! from the ISA. To handle octets, the address can be divided by 2 or 4 (depending on cell size) and the masked read or write done accordingly. That restricts c@/c! to the bottom half of each address space, which is usually no problem. An octet is just a field whose size is 8-bit and is aligned on 8-bit boundaries.
+
 ## OOPs
 
 The BIT-STRUCTURE syntax could be the beginning of a cheap OOP paradigm. Each of the p1, p2, p3 structures in the example has its own instance of x and y. Words in point are common to each p. 
